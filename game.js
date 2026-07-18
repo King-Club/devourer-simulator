@@ -210,6 +210,12 @@ function calculateHeroPrice(hero) {
     const strength = hero.baseAttack * 2.8 + hero.baseDefense * 1.8 + hero.baseSpeed * 1.35 + hero.baseHp * 0.32;
     return Math.max(180, Math.round((strength * 12 + 40) / 10) * 10);
 }
+function calculateHeroPower(hero) {
+    return Math.round(hero.baseAttack * 12 + hero.baseDefense * 8 + hero.baseSpeed * 7 + hero.baseHp * 1.2);
+}
+function heroesByPower(entries = Object.entries(ANIMALS)) {
+    return [...entries].sort(([, a], [, b]) => calculateHeroPower(a) - calculateHeroPower(b) || a.name.localeCompare(b.name));
+}
 function refreshHeroPrices() {
     Object.values(ANIMALS).forEach(hero => {
         if (!hero.signOnly) hero.price = calculateHeroPrice(hero);
@@ -469,6 +475,30 @@ function build3DMesh(entity, kind) {
         threeScene.add(group); return group;
     }
 
+    // 鲨鱼采用横向鱼身、尾鳍、背鳍和胸鳍，不再使用四脚动物的通用身体。
+    if (kind !== 'particle' && entity.type === 'shark') {
+        const sharkBody = add(new Three.SphereGeometry(.42, 12, 8), material, 0, .53, .05, 1.5, .7, 2.25);
+        add(new Three.SphereGeometry(.055, 7, 6), dark, -.16, .64, -.7);
+        add(new Three.SphereGeometry(.055, 7, 6), dark, .16, .64, -.7);
+        const belly = new Three.MeshStandardMaterial({ color: 0xdde6e8, roughness: .8, flatShading: true });
+        add(new Three.SphereGeometry(.28, 10, 6), belly, 0, .38, -.05, 1.35, .25, 1.9);
+        const fin = (x, y, z, scaleX, rotationZ = 0) => {
+            const part = add(new Three.ConeGeometry(.18, .62, 4), material, x, y, z, scaleX, 1, 1);
+            part.rotation.z = rotationZ; return part;
+        };
+        fin(0, .95, .12, 1, 0); // 背鳍
+        fin(-.48, .47, -.02, 1, -.95); fin(.48, .47, -.02, 1, .95); // 胸鳍
+        const tail = new Three.Mesh(new Three.ConeGeometry(.34, .7, 4), material);
+        tail.position.set(0, .54, .96); tail.rotation.x = Math.PI / 2; group.add(tail);
+        group.userData.flying = false;
+        group.userData.swimming = true;
+        group.userData.wings = [];
+        group.userData.legs = [];
+        group.userData.body = sharkBody;
+        threeScene.add(group);
+        return group;
+    }
+
     const size = entity.isBoss ? 1.55 : 1;
     const sphere = new Three.SphereGeometry(0.42, 10, 8);
     const head = add(sphere, material, 0, 0.62 * size, -0.05, size, size, size);
@@ -534,9 +564,10 @@ function render3D() {
         if (kind === 'particle') mesh.rotation.y += 0.12;
         else if (Math.hypot(entity.vx || 0, entity.vy || 0) > 0.05) mesh.rotation.y = Math.atan2(entity.vx, entity.vy) + Math.PI;
         if (flying) mesh.userData.wings.forEach((wing, index) => { wing.rotation.z = (index ? 1 : -1) * (1.0 + Math.sin(phase * 2.5) * .5); });
-        if (!flying && mesh.userData.legs) mesh.userData.legs.forEach((leg, index) => {
+    if (!flying && mesh.userData.legs) mesh.userData.legs.forEach((leg, index) => {
             leg.rotation.x = moving ? Math.sin(phase * 3 + (index % 2 ? Math.PI : 0)) * .65 : 0;
         });
+        if (mesh.userData.swimming) mesh.rotation.z = moving ? Math.sin(phase * 2.2) * .08 : 0;
         // 爪击、啄击与冲撞都用短促的前探动作表现；Boss 咆哮时会明显放大。
         if (entity.attackFlash > 0) {
             const hit = Math.min(1, entity.attackFlash / 10);
@@ -1341,16 +1372,15 @@ function openAccountPanel(kind) {
     const cards = (items) => `<div class="animals-grid">${items}</div>`;
     if (kind === 'hero') {
         title.textContent = '🦸 英雄图鉴';
-        content.innerHTML = cards(Object.entries(ANIMALS).map(([, h]) => `<div class="animal-card" style="opacity:${h.unlocked ? 1 : .55}"><div class="animal-emoji">${h.emoji}</div><div class="animal-name">${h.name}</div><div class="animal-stats">${h.unlocked ? '已解锁' : h.signOnly ? '签到专属' : `售价 ${h.price} 金币`}</div></div>`).join(''));
+        content.innerHTML = cards(heroesByPower().map(([, h]) => `<div class="animal-card" style="opacity:${h.unlocked ? 1 : .55}"><div class="animal-emoji">${h.emoji}</div><div class="animal-name">${h.name}</div><div class="animal-stats">战力 ${calculateHeroPower(h)}<br>${h.unlocked ? '已解锁' : h.signOnly ? '签到专属' : `售价 ${h.price} 金币`}</div></div>`).join(''));
     } else if (kind === 'bag') {
         title.textContent = '🎒 背包';
         content.innerHTML = cards(`<div class="animal-card"><div class="animal-emoji">🪙</div><div class="animal-name">金币</div><div class="animal-stats">${gameState.stats.coins}</div></div><div class="animal-card"><div class="animal-emoji">🪪</div><div class="animal-name">改名卡</div><div class="animal-stats">数量 ×${gameState.account.inventory.renameCard || 0}</div><button class="btn btn-success" type="button" ${gameState.account.inventory.renameCard ? '' : 'disabled'} onclick="useRenameCard()">使用改名卡</button></div>`);
     } else if (kind === 'shop') {
         title.textContent = '🛒 商城';
-        content.innerHTML = cards(Object.entries(ANIMALS)
+        content.innerHTML = cards(heroesByPower()
             .filter(([, h]) => !h.unlocked && !h.signOnly)
-            .sort(([, a], [, b]) => a.price - b.price)
-            .map(([key,h]) => `<button class="animal-card" type="button" onclick="confirmPurchase('${key}')"><div class="animal-emoji">${h.emoji}</div><div class="animal-name">${h.name}</div><div class="animal-stats">🪙 ${h.price} 金币</div></button>`).join('') || '<div class="tip">当前可购买英雄已全部拥有。</div>');
+            .map(([key,h]) => `<button class="animal-card" type="button" onclick="confirmPurchase('${key}')"><div class="animal-emoji">${h.emoji}</div><div class="animal-name">${h.name}</div><div class="animal-stats">战力 ${calculateHeroPower(h)}<br>🪙 ${h.price} 金币</div></button>`).join('') || '<div class="tip">当前可购买英雄已全部拥有。</div>');
     } else {
         title.textContent = '✉️ 邮件';
         const mails = getMails();
@@ -1408,11 +1438,17 @@ function chooseMode(mode) {
     showAnimalSelection();
 }
 
+function cancelAnimalSelection() {
+    document.getElementById('selectModal').classList.add('hidden');
+    gameState.screen = 'hall';
+    showHall();
+}
+
 function showAnimalSelection() {
     const grid = document.getElementById('animalsGrid');
     grid.innerHTML = '';
 
-    Object.entries(ANIMALS).forEach(([key, animal]) => {
+    heroesByPower().forEach(([key, animal]) => {
         const card = document.createElement('div');
         card.className = 'animal-card';
         const abilities = ABILITIES[key];
@@ -1431,7 +1467,8 @@ function showAnimalSelection() {
                 ⚔️ ${animal.baseAttack}<br>
                 🛡️ ${animal.baseDefense}<br>
                 ⚡ ${animal.baseSpeed}<br>
-                ❤️ ${animal.baseHp}
+                ❤️ ${animal.baseHp}<br>
+                ⚔️ 战力 ${calculateHeroPower(animal)}
             </div>
             <div style="font-size: 10px; color: #555; line-height: 1.5; margin-top: 8px;">
                 被动·${abilities.passive.name}：${abilities.passive.desc}<br>
@@ -1828,6 +1865,7 @@ const keys = {};
 document.getElementById('towerModeButton').addEventListener('click', () => chooseMode('tower'));
 document.getElementById('rankedModeButton').addEventListener('click', () => chooseMode('ranked'));
 document.getElementById('teamModeButton').addEventListener('click', () => chooseMode('team'));
+document.getElementById('selectBackButton').addEventListener('click', cancelAnimalSelection);
 document.getElementById('signButton').addEventListener('click', claimDailySignIn);
 document.getElementById('desktopModeButton').addEventListener('click', () => setControlMode('desktop'));
 document.getElementById('mobileModeButton').addEventListener('click', () => setControlMode('mobile'));

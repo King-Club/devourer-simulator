@@ -1178,16 +1178,18 @@ class Particle {
             const dy = player.y - this.y;
             const distance = Math.hypot(dx, dy);
             if (distance > 0) {
-                const pull = Math.max(0.8, (1 - Math.min(distance, 260) / 260) * 1.5) * frameScale;
-                this.vx += (dx / distance) * pull;
-                this.vy += (dy / distance) * pull;
+                // 每一帧重新朝玩家当前位置转向，角色拐弯时粒子也会立刻跟随。
+                const speed = Math.min(18, 6 + distance * 0.08);
+                const turn = 1 - Math.pow(0.55, frameScale);
+                this.vx += ((dx / distance) * speed - this.vx) * turn;
+                this.vy += ((dy / distance) * speed - this.vy) * turn;
             }
         }
 
         if (!this.isAmbient) {
             this.x += this.vx * frameScale;
             this.y += this.vy * frameScale;
-            this.vy += 0.08 * frameScale; // 重力下降
+            if (!this.autoCollect) this.vy += 0.08 * frameScale; // 普通掉落才受重力影响
         }
         this.life -= frameScale;
     }

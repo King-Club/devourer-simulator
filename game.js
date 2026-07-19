@@ -557,10 +557,34 @@ async function init3DRenderer() {
                 }
             }
         }
+        // 珊瑚礁群：礁石基座、扇形珊瑚和高低分枝，让海底有明确的景深层次。
+        const reefRockMat = new THREE.MeshStandardMaterial({ color:0x586d70, roughness:.95, flatShading:true });
+        const fanCoralMat = new THREE.MeshStandardMaterial({ color:0xef6f91, emissive:0x55202e, emissiveIntensity:.18, roughness:.7, flatShading:true, side:THREE.DoubleSide });
+        for (let reef = 0; reef < 7; reef++) {
+            const x = (Math.random() - .5) * 22, z = (Math.random() - .5) * 15;
+            for (let rock = 0; rock < 3; rock++) {
+                const base = new THREE.Mesh(new THREE.DodecahedronGeometry(.28 + Math.random() * .25, 0), reefRockMat);
+                base.position.set(x + (Math.random() - .5) * .75, .18, z + (Math.random() - .5) * .6);
+                base.scale.y = .65;
+                oceanDecor.add(base);
+            }
+            const fan = new THREE.Mesh(new THREE.CircleGeometry(.35 + Math.random() * .16, 8), fanCoralMat);
+            fan.position.set(x, .65, z + .12); fan.rotation.y = (Math.random() - .5) * .6;
+            oceanDecor.add(fan);
+            const purpleMat = new THREE.MeshStandardMaterial({ color:0x8e6ad6, roughness:.7, flatShading:true });
+            for (let branch = -2; branch <= 2; branch++) {
+                const stalk = new THREE.Mesh(new THREE.CylinderGeometry(.045, .075, .55 + Math.random() * .4, 6), purpleMat);
+                stalk.position.set(x + branch * .11, .42, z - .12 + Math.abs(branch) * .04);
+                stalk.rotation.z = branch * .13;
+                oceanDecor.add(stalk);
+            }
+        }
         const bubbleMat = new THREE.MeshStandardMaterial({ color:0xc5f4ff, emissive:0x4ba9c8, emissiveIntensity:.35, transparent:true, opacity:.65, roughness:.25 });
         for (let i = 0; i < 24; i++) {
             const bubble = new THREE.Mesh(new THREE.SphereGeometry(.035 + Math.random() * .055, 7, 6), bubbleMat);
             bubble.position.set((Math.random() - .5) * 24, .35 + Math.random() * 2.2, (Math.random() - .5) * 17);
+            bubble.userData.isOceanBubble = true;
+            bubble.userData.bubbleSpeed = .003 + Math.random() * .006;
             oceanDecor.add(bubble);
         }
         threeOceanDecor = oceanDecor;
@@ -579,7 +603,7 @@ function applySceneEnvironment() {
     if (threeNature) threeNature.visible = !ocean && !sky;
     if (threeOceanDecor) threeOceanDecor.visible = ocean;
     if (threeGrid) threeGrid.visible = !ocean;
-    if (threeGround) threeGround.material.color.setHex(ocean ? 0x1676a8 : sky ? 0xbce8ff : 0x579c63);
+    if (threeGround) threeGround.material.color.setHex(ocean ? 0xbba76e : sky ? 0xbce8ff : 0x579c63);
     if (threeScene && Three) {
         const color = ocean ? 0x1d6f9d : sky ? 0x91d5ff : 0x87b9e8;
         threeScene.background = new Three.Color(color); threeScene.fog.color = new Three.Color(color);
@@ -757,6 +781,13 @@ function build3DMesh(entity, kind) {
 
 function render3D() {
     if (!render3DReady) return;
+    if (threeOceanDecor?.visible) {
+        threeOceanDecor.children.forEach(item => {
+            if (!item.userData.isOceanBubble) return;
+            item.position.y += item.userData.bubbleSpeed;
+            if (item.position.y > 2.9) item.position.y = .18;
+        });
+    }
     const active = new Set();
     const sync = (entity, kind, id) => {
         active.add(id);
@@ -2173,6 +2204,8 @@ function showLevelUpSkills() {
             // 溢出的经验按等级逐次结算：每一级都能获得一次技能选择。
             if (!gameState.player.tryLevelUp()) {
                 gameState.screen = 'playing';
+                // 升级选择需要临时退出全屏；玩家点击技能后立刻回到沉浸式全屏战斗。
+                enterGameFullscreen();
             }
         };
         grid.appendChild(card);

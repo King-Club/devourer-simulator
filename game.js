@@ -1517,7 +1517,7 @@ const TUTORIAL_STEPS = [
     '跟着箭头吃掉这个经验点：会获得经验并回复 1 点生命。',
     '靠近宝箱打开它。奖励会落在宝箱周围，记得亲自拾取。',
     '点击左上角的主动技能按钮，试试小猫的成长呼噜。',
-    '最后靠近小兔子并击败它。碰到敌人会自动攻击；脱战 5 秒会自动回血。升级后可选择普通、稀有、史诗或传奇技能。'
+    '最后靠近小兔子并击败它。碰到敌人会自动攻击；脱战 5 秒会自动回血。进入排位或爬塔后，右侧“找死·全员来战”会让所有敌人主动找你；再按一次即可取消。'
 ];
 
 function setTutorialStep(step) {
@@ -1637,7 +1637,7 @@ function completeTutorialBattle() {
     document.getElementById('tutorialCoach').style.display = 'none';
     document.getElementById('tutorialExitButton').style.display = 'none';
     gameState.tutorial.completed = true;
-    document.getElementById('tutorialText').textContent = '新手实战完成！你已经学会移动、拾取、开宝箱、使用技能和战斗。';
+    document.getElementById('tutorialText').textContent = '新手实战完成！你已经学会移动、拾取、开宝箱、使用技能和战斗。排位与爬塔右侧还有“找死”开关，可让全部敌人主动来战，再按一次即可取消。';
     document.getElementById('tutorialNext').textContent = '返回大厅并了解大厅';
     document.getElementById('tutorialSkip').style.display = '';
     document.getElementById('tutorialModal').classList.remove('hidden');

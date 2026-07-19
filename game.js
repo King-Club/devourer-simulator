@@ -223,7 +223,7 @@ Object.assign(ANIMALS, {
         ? {passive:{name:'迅捷',desc:'速度 +1',bonus:{speed:1}},active:{name:'俯冲冲撞',desc:'沿面向冲撞并造成伤害',effect:'dash',distance:190,cooldown:9}}
         : {passive:{name:'猎手本能',desc:'攻击 +1',bonus:{attack:1}},active:{name:'实体突袭',desc:'发射穿透地图的实体攻击',effect:'empower',bonus:10,hits:1,cooldown:10}};
 });
-const OCEAN_TYPES=['dolphin','shark','axolotl','seal','whale','orca','octopus','jellyfish'];
+const OCEAN_TYPES=['dolphin','shark','seal','whale','orca','octopus','jellyfish'];
 const SKY_TYPES=['eagle','owl','crane','phoenix','bat','parrot','falcon','albatross','hummingbird','swan'];
 function environmentFor(type){ return OCEAN_TYPES.includes(type)?'ocean':SKY_TYPES.includes(type)?'sky':'land'; }
 
@@ -536,6 +536,37 @@ function build3DMesh(entity, kind) {
         threeScene.add(group); return group;
     }
 
+    if (kind !== 'particle' && entity.type === 'jellyfish') {
+        const bell = add(new Three.SphereGeometry(.48, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), material, 0, .72, 0, 1.15, .9, 1.15);
+        const inner = new Three.MeshStandardMaterial({ color: 0xc9eeff, emissive: 0x3d8bb0, emissiveIntensity: .35, transparent: true, opacity: .7, roughness: .45 });
+        add(new Three.SphereGeometry(.25, 10, 6), inner, 0, .58, 0, 1, .45, 1);
+        [-.28, -.1, .1, .28].forEach((x, index) => {
+            const tentacle = add(new Three.CylinderGeometry(.027, .045, .64 + (index % 2) * .12, 6), material, x, .22, .06 * (index % 2 ? 1 : -1));
+            tentacle.rotation.z = x * .7;
+        });
+        add(new Three.SphereGeometry(.045, 7, 6), dark, -.13, .69, -.4);
+        add(new Three.SphereGeometry(.045, 7, 6), dark, .13, .69, -.4);
+        group.userData = { flying:false, swimming:true, wings:[], legs:[], body:bell };
+        threeScene.add(group); return group;
+    }
+
+    if (kind !== 'particle' && entity.type === 'octopus') {
+        const head = add(new Three.SphereGeometry(.45, 12, 9), material, 0, .74, -.03, 1, 1.15, 1);
+        const mantle = add(new Three.SphereGeometry(.34, 11, 8), material, 0, .43, .06, 1.1, .65, 1.05);
+        for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI * 2 * i) / 8;
+            const arm = add(new Three.ConeGeometry(.07, .68, 6), material, Math.cos(angle) * .28, .22, Math.sin(angle) * .28, 1, 1, 1);
+            arm.rotation.z = Math.cos(angle) * .95;
+            arm.rotation.x = Math.sin(angle) * .95;
+        }
+        add(new Three.SphereGeometry(.06, 7, 6), light, -.16, .78, -.4);
+        add(new Three.SphereGeometry(.06, 7, 6), light, .16, .78, -.4);
+        add(new Three.SphereGeometry(.025, 6, 5), dark, -.16, .78, -.45);
+        add(new Three.SphereGeometry(.025, 6, 5), dark, .16, .78, -.45);
+        group.userData = { flying:false, swimming:true, wings:[], legs:[], body:head };
+        threeScene.add(group); return group;
+    }
+
     // 鲨鱼采用横向鱼身、尾鳍、背鳍和胸鳍，不再使用四脚动物的通用身体。
     if (kind !== 'particle' && OCEAN_TYPES.includes(entity.type)) {
         const sharkBody = add(new Three.SphereGeometry(.42, 12, 8), material, 0, .53, .05, 1.5, .7, 2.25);
@@ -544,9 +575,11 @@ function build3DMesh(entity, kind) {
         const belly = new Three.MeshStandardMaterial({ color: 0xdde6e8, roughness: .8, flatShading: true });
         add(new Three.SphereGeometry(.28, 10, 6), belly, 0, .38, -.05, 1.35, .25, 1.9);
         if (entity.type === 'orca') {
-            // 虎鲸的白色眼斑和白色腹部：与黑色背部形成现实中的典型配色。
-            add(new Three.SphereGeometry(.13, 8, 6), belly, -.26, .69, -.58, .9, .45, .18);
-            add(new Three.SphereGeometry(.13, 8, 6), belly, .26, .69, -.58, .9, .45, .18);
+            // 虎鲸的醒目白色眼斑、侧腹白斑和白色腹部。
+            add(new Three.SphereGeometry(.17, 9, 7), belly, -.27, .72, -.62, 1.25, .62, .22);
+            add(new Three.SphereGeometry(.17, 9, 7), belly, .27, .72, -.62, 1.25, .62, .22);
+            add(new Three.SphereGeometry(.22, 10, 7), belly, -.43, .56, -.18, .35, .72, 1.1);
+            add(new Three.SphereGeometry(.22, 10, 7), belly, .43, .56, -.18, .35, .72, 1.1);
         }
         const fin = (x, y, z, scaleX, rotationZ = 0) => {
             const part = add(new Three.ConeGeometry(.18, .62, 4), material, x, y, z, scaleX, 1, 1);

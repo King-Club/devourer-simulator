@@ -334,6 +334,7 @@ let gameState = {
     chests: [],
     obstacles: [],
     damageNumbers: [],
+    provokeActive: false,
     levelUpShown: false,  // 防止升级界面重复生成
     world: {
         level: 1,
@@ -405,6 +406,7 @@ function saveRankedRun() {
         killCount: gameState.stats.killCount,
         skillRerolls: gameState.skillRerolls || 0,
         chestAvailable: gameState.world.level === 1 && gameState.chests.length > 0,
+        provokeActive: !!gameState.provokeActive,
         enemies: gameState.enemies.map(serializeEnemy),
         savedAt: Date.now()
     }));
@@ -1108,7 +1110,7 @@ class Enemy extends Character {
         // Boss 会持续锁定玩家；普通敌人才保留随机巡逻行为。
         if (gameState.mode === 'team') {
             // 团队模式的目标由 updateTeamTargets 分配，不能再被随机巡逻覆盖。
-        } else if (this.isBoss && gameState.player) {
+        } else if ((this.isBoss || gameState.provokeActive) && gameState.player) {
             this.targetX = gameState.player.x;
             this.targetY = gameState.player.y;
         } else {
@@ -1890,6 +1892,7 @@ function startGame(animalType, savedRun = null) {
     gameState.skillEffects = [];
     gameState.chests = [];
     gameState.damageNumbers = [];
+    gameState.provokeActive = false;
     gameState.stats.killCount = 0;
     gameState.skillRerolls = 0;
     gameState.world.level = 1;
@@ -1905,6 +1908,7 @@ function startGame(animalType, savedRun = null) {
         gameState.world.time = Math.max(0, savedRun.time || 0);
         gameState.stats.killCount = Math.max(0, savedRun.killCount || 0);
         gameState.skillRerolls = Math.max(0, savedRun.skillRerolls || 0);
+        gameState.provokeActive = !!savedRun.provokeActive;
     } else if (['ranked','tower'].includes(gameState.mode)) {
         clearRankedRun();
     }
@@ -2362,6 +2366,18 @@ document.getElementById('tutorialExitButton').addEventListener('click', finishTu
 document.getElementById('activeSkillButton').addEventListener('click', () => {
     if (gameState.player) gameState.player.useActiveSkill();
 });
+document.getElementById('provokeButton').addEventListener('click', () => {
+    if (!['ranked', 'tower'].includes(gameState.mode) || !gameState.player || gameState.provokeActive) return;
+    gameState.provokeActive = true;
+    gameState.enemies.forEach(enemy => {
+        enemy.targetX = gameState.player.x;
+        enemy.targetY = gameState.player.y;
+        enemy.lastActionText = '正在赶来';
+        enemy.attackFlash = 10;
+    });
+    saveRankedRun();
+    updateUI();
+});
 
 const joystick = document.getElementById('mobileJoystick');
 const joystickStick = document.getElementById('joystickStick');
@@ -2501,6 +2517,12 @@ function updateUI() {
         : `${skillIcon} ${player.activeAbility.name}（${controlMode === 'mobile' ? '点击' : '空格'}）`;
     activeButton.title = player.activeAbility.desc;
     activeButton.disabled = player.activeCooldown > 0;
+
+    const provokeButton = document.getElementById('provokeButton');
+    const canProvoke = ['ranked', 'tower'].includes(gameState.mode) && gameState.screen === 'playing';
+    provokeButton.style.display = canProvoke ? 'block' : 'none';
+    provokeButton.disabled = gameState.provokeActive;
+    provokeButton.textContent = gameState.provokeActive ? '💢 找死已开启' : '💢 找死·全员来战';
 
     // HP条
     const hpPercent = Math.max(0, player.hp / player.maxHp) * 100;

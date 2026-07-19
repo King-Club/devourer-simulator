@@ -152,6 +152,25 @@
             cursor: not-allowed;
         }
 
+        .provoke-btn {
+            position: fixed;
+            z-index: 240;
+            right: max(24px, env(safe-area-inset-right));
+            top: 59%;
+            transform: translateY(-50%);
+            min-width: 128px;
+            padding: 10px 13px;
+            border: 0;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #d94848, #8f2020);
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,0,0,.28);
+        }
+
+        .provoke-btn:disabled { background: #777; cursor: not-allowed; }
+
         .modal {
             position: fixed;
             top: 0;
@@ -455,6 +474,7 @@
         <div class="ability-info">
             <div id="passiveSkill">被动技能</div>
             <button id="activeSkillButton" class="active-skill-btn" type="button" title="主动技能">主动技能（空格）</button>
+            <button id="provokeButton" class="provoke-btn" type="button" title="让所有敌人主动来找你战斗">💢 找死·全员来战</button>
         </div>
         <div id="upgradeNotice" style="margin-top:7px; font-size:11px; color:#c05b16;"></div>
     </div>
@@ -481,6 +501,6 @@
         </div>
     </div>
 
-    <script src="game.js?v=3.0.7"></script>
+    <script src="game.js?v=3.0.8"></script>
 </body>
 </html>

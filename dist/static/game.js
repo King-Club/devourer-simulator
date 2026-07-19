@@ -433,7 +433,7 @@ let nextParticleId = 1;
 // ============ 3D 渲染层 ============
 // 3D 库异步加载；失败时保留原 Canvas 画面，保证游戏仍可游玩。
 let render3DReady = false;
-let Three, threeRenderer, threeScene, threeCamera, threeMeshes, threeLabels, threeNature, threeGround;
+let Three, threeRenderer, threeScene, threeCamera, threeMeshes, threeLabels, threeNature, threeGround, threeGrid, threeOceanDecor;
 
 async function init3DRenderer() {
     try {
@@ -463,9 +463,9 @@ async function init3DRenderer() {
         threeGround = new THREE.Mesh(new THREE.PlaneGeometry(26, 19), new THREE.MeshStandardMaterial({ color: 0x579c63, roughness: 0.95 }));
         threeGround.rotation.x = -Math.PI / 2;
         threeScene.add(threeGround);
-        const grid = new THREE.GridHelper(26, 13, 0x8fcf91, 0x75b57d);
-        grid.position.y = 0.01;
-        threeScene.add(grid);
+        threeGrid = new THREE.GridHelper(26, 13, 0x8fcf91, 0x75b57d);
+        threeGrid.position.y = 0.01;
+        threeScene.add(threeGrid);
         // 大草原自然景物：低多边形树、石头与灌木，固定种子让每局地图稳定。
         const nature = new THREE.Group();
         gameState.obstacles = [];
@@ -487,6 +487,37 @@ async function init3DRenderer() {
         }
         threeNature = nature;
         threeScene.add(nature);
+        // 海洋场景装饰：珊瑚、海草和上浮气泡，只负责视觉效果，不会阻挡角色。
+        const oceanDecor = new THREE.Group();
+        const coralMaterials = [0xff847c, 0xffc06a, 0xa36ddd];
+        for (let i = 0; i < 20; i++) {
+            const x = (Math.random() - .5) * 24, z = (Math.random() - .5) * 17;
+            if (i % 2 === 0) {
+                const coralMat = new THREE.MeshStandardMaterial({ color: coralMaterials[i % coralMaterials.length], roughness:.75, flatShading:true });
+                for (let branch = -1; branch <= 1; branch++) {
+                    const coral = new THREE.Mesh(new THREE.ConeGeometry(.1 + Math.abs(branch) * .03, .55 + Math.random() * .35, 6), coralMat);
+                    coral.position.set(x + branch * .12, .3, z + Math.abs(branch) * .08);
+                    coral.rotation.z = branch * .35;
+                    oceanDecor.add(coral);
+                }
+            } else {
+                const seaweedMat = new THREE.MeshStandardMaterial({ color: 0x237c68, roughness:.85, flatShading:true });
+                for (let blade = -1; blade <= 1; blade++) {
+                    const seaweed = new THREE.Mesh(new THREE.CylinderGeometry(.025, .045, .65 + Math.random() * .32, 5), seaweedMat);
+                    seaweed.position.set(x + blade * .1, .35, z);
+                    seaweed.rotation.z = blade * .24;
+                    oceanDecor.add(seaweed);
+                }
+            }
+        }
+        const bubbleMat = new THREE.MeshStandardMaterial({ color:0xc5f4ff, emissive:0x4ba9c8, emissiveIntensity:.35, transparent:true, opacity:.65, roughness:.25 });
+        for (let i = 0; i < 24; i++) {
+            const bubble = new THREE.Mesh(new THREE.SphereGeometry(.035 + Math.random() * .055, 7, 6), bubbleMat);
+            bubble.position.set((Math.random() - .5) * 24, .35 + Math.random() * 2.2, (Math.random() - .5) * 17);
+            oceanDecor.add(bubble);
+        }
+        threeOceanDecor = oceanDecor;
+        threeScene.add(oceanDecor);
         threeMeshes = new Map();
         render3DReady = true;
         applySceneEnvironment();
@@ -499,6 +530,8 @@ function applySceneEnvironment() {
     const ocean = gameState.environment === 'ocean';
     const sky = gameState.environment === 'sky';
     if (threeNature) threeNature.visible = !ocean && !sky;
+    if (threeOceanDecor) threeOceanDecor.visible = ocean;
+    if (threeGrid) threeGrid.visible = !ocean;
     if (threeGround) threeGround.material.color.setHex(ocean ? 0x1676a8 : sky ? 0xbce8ff : 0x579c63);
     if (threeScene && Three) {
         const color = ocean ? 0x1d6f9d : sky ? 0x91d5ff : 0x87b9e8;
@@ -537,6 +570,31 @@ function build3DMesh(entity, kind) {
         } else {
             add(new Three.IcosahedronGeometry(entity.radius / 55, 1), skillMat, 0, .42, 0);
         }
+        threeScene.add(group); return group;
+    }
+
+    if (kind !== 'particle' && entity.type === 'seal') {
+        const fur = new Three.MeshStandardMaterial({ color:0xaebbc2, roughness:.82, flatShading:true });
+        const belly = new Three.MeshStandardMaterial({ color:0xe5edf0, roughness:.8, flatShading:true });
+        const body = add(new Three.SphereGeometry(.43, 12, 8), fur, 0, .47, .1, 1.18, .72, 1.7);
+        add(new Three.SphereGeometry(.32, 11, 8), fur, 0, .63, -.53, 1, .95, .9);
+        add(new Three.SphereGeometry(.22, 10, 7), belly, 0, .35, -.58, 1.05, .45, .45);
+        add(new Three.SphereGeometry(.045, 7, 6), dark, -.12, .72, -.78);
+        add(new Three.SphereGeometry(.045, 7, 6), dark, .12, .72, -.78);
+        add(new Three.SphereGeometry(.06, 7, 6), dark, 0, .61, -.84, 1.15, .55, .65);
+        [-1, 1].forEach(side => {
+            const flipper = add(new Three.SphereGeometry(.18, 8, 6), fur, side * .48, .37, .06, .42, .22, .95);
+            flipper.rotation.z = side * .45;
+        });
+        [-1, 1].forEach(side => {
+            const rearFlipper = add(new Three.ConeGeometry(.13, .42, 5), fur, side * .16, .39, .78);
+            rearFlipper.rotation.x = Math.PI / 2; rearFlipper.rotation.z = side * .45;
+        });
+        [-1, 1].forEach(side => {
+            const whisker = add(new Three.CylinderGeometry(.008, .008, .26, 4), light, side * .14, .59, -.86);
+            whisker.rotation.z = side * Math.PI / 2.7;
+        });
+        group.userData = { flying:false, swimming:true, wings:[], legs:[], body };
         threeScene.add(group); return group;
     }
 

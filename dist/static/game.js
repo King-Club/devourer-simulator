@@ -467,7 +467,8 @@ async function init3DRenderer() {
         gameState.obstacles = [];
         for (let i = 0; i < 38; i++) {
             const x = (Math.random() - .5) * 24, z = (Math.random() - .5) * 17;
-            if (i % 3 !== 2) gameState.obstacles.push({ x:x * 42 + GAME_WIDTH / 2, y:z * 42 + GAME_HEIGHT / 2, radius:i % 3 === 0 ? 34 : 24 });
+            // 模型看起来比实际碰撞范围大一些，避免角色经过树木、石头时被卡住。
+            if (i % 3 !== 2) gameState.obstacles.push({ x:x * 42 + GAME_WIDTH / 2, y:z * 42 + GAME_HEIGHT / 2, radius:i % 3 === 0 ? 20 : 14 });
             if (i % 3 === 0) {
                 const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.1, .16, .75, 6), new THREE.MeshStandardMaterial({ color: 0x70452d, flatShading: true }));
                 const crown = new THREE.Mesh(new THREE.ConeGeometry(.48, 1.15, 7), new THREE.MeshStandardMaterial({ color: 0x2f7b43, flatShading: true }));
@@ -1294,8 +1295,36 @@ function setTutorialStep(step) {
     if (step === 4) { x = 82; y = 50; }
     coach.style.left = `${x}%`; coach.style.top = `${y}%`;
     arrow.textContent = direction;
-    hint.textContent = TUTORIAL_STEPS[step];
+    hint.textContent = step === 0
+        ? (controlMode === 'mobile'
+            ? '这是新手实战：拖动左下角的摇杆，让小猫先走起来。'
+            : '这是新手实战：按 WASD 或方向键，让小猫先走起来。')
+        : TUTORIAL_STEPS[step];
     coach.style.display = 'block';
+}
+
+function placeTutorialPlayerSafely(player) {
+    const obstacles = gameState.obstacles || [];
+    const padding = player.radius + 60;
+    const candidates = [{ x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2 }];
+    for (let ring = 1; ring <= 4; ring++) {
+        const distance = ring * 105;
+        for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
+            candidates.push({
+                x: GAME_WIDTH / 2 + Math.cos(angle) * distance,
+                y: GAME_HEIGHT / 2 + Math.sin(angle) * distance
+            });
+        }
+    }
+    const safeSpot = candidates.find(point =>
+        point.x > player.radius + 80 && point.x < GAME_WIDTH - player.radius - 80 &&
+        point.y > player.radius + 80 && point.y < GAME_HEIGHT - player.radius - 80 &&
+        !obstacles.some(obstacle => Math.hypot(point.x - obstacle.x, point.y - obstacle.y) < obstacle.radius + padding)
+    );
+    if (safeSpot) {
+        player.x = safeSpot.x;
+        player.y = safeSpot.y;
+    }
 }
 
 function startTutorialBattle() {
@@ -1622,6 +1651,7 @@ function startGame(animalType, savedRun = null) {
     gameState.world.time = 0;
     gameState.environment = environmentFor(animalType);
     applySceneEnvironment();
+    if (gameState.mode === 'tutorial' && gameState.environment === 'land') placeTutorialPlayerSafely(gameState.player);
     if (savedRun && ['ranked','tower'].includes(gameState.mode)) {
         const savedPlayer = savedRun.player;
         const fields = ['level','exp','expToLevel','attack','defense','speed','maxHp','hp','skills','regenBonus','critChance','lifesteal','skillPower','activeCooldownReduction','activeCooldown','empoweredHits','empoweredDamage','shieldHits','shieldReduction'];

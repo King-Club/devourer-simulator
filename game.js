@@ -238,6 +238,10 @@ function calculateHeroPower(hero) {
 function heroesByPower(entries = Object.entries(ANIMALS)) {
     return [...entries].sort(([, a], [, b]) => calculateHeroPower(a) - calculateHeroPower(b) || a.name.localeCompare(b.name));
 }
+function heroIconMarkup(key, hero) {
+    if (key !== 'orca') return hero.emoji;
+    return '<span class="orca-icon" role="img" aria-label="虎鲸"><i></i><b class="orca-eye-patch"></b><b class="orca-belly-patch"></b></span>';
+}
 function refreshHeroPrices() {
     Object.values(ANIMALS).forEach(hero => {
         if (!hero.signOnly) hero.price = calculateHeroPrice(hero);
@@ -1556,7 +1560,7 @@ function openAccountPanel(kind) {
     const cards = (items) => `<div class="animals-grid">${items}</div>`;
     if (kind === 'hero') {
         title.textContent = '🦸 英雄图鉴';
-        content.innerHTML = cards(heroesByPower().map(([, h]) => `<div class="animal-card" style="opacity:${h.unlocked ? 1 : .55}"><div class="animal-emoji">${h.emoji}</div><div class="animal-name">${h.name}</div><div class="animal-stats">战力 ${calculateHeroPower(h)}<br>${h.unlocked ? '已解锁' : h.signOnly ? '签到专属' : `售价 ${h.price} 金币`}</div></div>`).join(''));
+        content.innerHTML = cards(heroesByPower().map(([key, h]) => `<div class="animal-card" style="opacity:${h.unlocked ? 1 : .55}"><div class="animal-emoji">${heroIconMarkup(key, h)}</div><div class="animal-name">${h.name}</div><div class="animal-stats">战力 ${calculateHeroPower(h)}<br>${h.unlocked ? '已解锁' : h.signOnly ? '签到专属' : `售价 ${h.price} 金币`}</div></div>`).join(''));
     } else if (kind === 'bag') {
         title.textContent = '🎒 背包';
         content.innerHTML = cards(`<div class="animal-card"><div class="animal-emoji">🪙</div><div class="animal-name">金币</div><div class="animal-stats">${gameState.stats.coins}</div></div><div class="animal-card"><div class="animal-emoji">🪪</div><div class="animal-name">改名卡</div><div class="animal-stats">数量 ×${gameState.account.inventory.renameCard || 0}</div><button class="btn btn-success" type="button" ${gameState.account.inventory.renameCard ? '' : 'disabled'} onclick="useRenameCard()">使用改名卡</button></div>`);
@@ -1566,7 +1570,7 @@ function openAccountPanel(kind) {
         title.textContent = '🛒 商城';
         content.innerHTML = cards(heroesByPower()
             .filter(([, h]) => !h.unlocked && !h.signOnly)
-            .map(([key,h]) => `<button class="animal-card" type="button" onclick="confirmPurchase('${key}')"><div class="animal-emoji">${h.emoji}</div><div class="animal-name">${h.name}</div><div class="animal-stats">战力 ${calculateHeroPower(h)}<br>🪙 ${h.price} 金币</div></button>`).join('') || '<div class="tip">当前可购买英雄已全部拥有。</div>');
+            .map(([key,h]) => `<button class="animal-card" type="button" onclick="confirmPurchase('${key}')"><div class="animal-emoji">${heroIconMarkup(key, h)}</div><div class="animal-name">${h.name}</div><div class="animal-stats">战力 ${calculateHeroPower(h)}<br>🪙 ${h.price} 金币</div></button>`).join('') || '<div class="tip">当前可购买英雄已全部拥有。</div>');
     } else {
         title.textContent = '✉️ 邮件';
         const mails = getMails();
@@ -1645,7 +1649,7 @@ function showAnimalSelection() {
         }
 
         card.innerHTML = `
-            <div class="animal-emoji">${animal.emoji}</div>
+            <div class="animal-emoji">${heroIconMarkup(key, animal)}</div>
             <div class="animal-name">${animal.name}</div>
             <div class="animal-stats">
                 ⚔️ ${animal.baseAttack}<br>
@@ -1906,16 +1910,21 @@ function spawnTeamBattle() {
 
 function checkTeamBattles() {
     if (gameState.mode !== 'team') return;
-    for (let a = gameState.allies.length - 1; a >= 0; a--) for (let e = gameState.enemies.length - 1; e >= 0; e--) {
-        const ally = gameState.allies[a], enemy = gameState.enemies[e];
-        if (Math.hypot(ally.x-enemy.x, ally.y-enemy.y) < 55) {
-            enemy.takeDamage(Math.max(2, ally.attack)); ally.takeDamage(Math.max(2, enemy.attack));
-            if (enemy.hp <= 0) gameState.enemies.splice(e, 1);
-            if (ally.hp <= 0) gameState.allies.splice(a, 1);
-        }
+    // 每帧只结算一组 AI 对战，双方同时倒下时也不会读取已经移除的角色。
+    let battlePair = null;
+    for (const ally of gameState.allies) {
+        const enemy = gameState.enemies.find(foe => Math.hypot(ally.x - foe.x, ally.y - foe.y) < 55);
+        if (enemy) { battlePair = { ally, enemy }; break; }
+    }
+    if (battlePair) {
+        const { ally, enemy } = battlePair;
+        enemy.takeDamage(Math.max(2, ally.attack));
+        ally.takeDamage(Math.max(2, enemy.attack));
+        if (enemy.hp <= 0) gameState.enemies = gameState.enemies.filter(foe => foe !== enemy);
+        if (ally.hp <= 0) gameState.allies = gameState.allies.filter(friend => friend !== ally);
     }
     if (gameState.enemies.length === 0) finishRankedMatch(true);
-    else if (gameState.allies.length === 0 && gameState.player.hp <= 0) endGame();
+    else if (gameState.allies.length === 0 && gameState.player.hp <= 0) finishRankedMatch(false);
 }
 
 function checkRankedAIBattles() {

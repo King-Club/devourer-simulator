@@ -209,6 +209,13 @@
             font-size: 60px;
             margin: 10px 0;
         }
+        .orca-icon { position:relative; display:inline-block; width:70px; height:42px; vertical-align:middle; }
+        .orca-icon::before { content:""; position:absolute; left:4px; top:10px; width:60px; height:25px; border-radius:58% 48% 48% 58%; background:#12151d; box-shadow:inset -8px -5px 0 #050608; }
+        .orca-icon::after { content:""; position:absolute; right:0; top:15px; width:15px; height:17px; background:#12151d; clip-path:polygon(0 50%,100% 0,82% 50%,100% 100%); }
+        .orca-icon i { position:absolute; left:28px; top:1px; width:12px; height:18px; border-radius:90% 10% 0 0; background:#12151d; transform:skewX(-18deg); }
+        .orca-icon b { position:absolute; display:block; background:#fff; z-index:1; }
+        .orca-icon .orca-eye-patch { left:17px; top:13px; width:15px; height:8px; border-radius:60% 30% 55% 45%; transform:rotate(-18deg); }
+        .orca-icon .orca-belly-patch { left:28px; top:25px; width:24px; height:7px; border-radius:50%; transform:rotate(-8deg); }
 
         .animal-name {
             font-size: 16px;
@@ -455,6 +462,6 @@
         </div>
     </div>
 
-    <script src="game.js?v=2.9.4"></script>
+    <script src="game.js?v=2.9.5"></script>
 </body>
 </html>

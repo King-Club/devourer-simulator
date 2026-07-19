@@ -1,5 +1,6 @@
 // ============ 游戏配置和常量 ============
 const GAME_WIDTH = 1000;
+document.title = '吞噬模拟器';
 const GAME_HEIGHT = 700;
 const TILE_SIZE = 50;
 const TARGET_FPS = 60;
@@ -205,6 +206,27 @@ Object.assign(ABILITIES, {
     squirrel: { passive:{name:'囤积',desc:'速度 +2',bonus:{speed:2}}, active:{name:'松果疗愈',desc:'恢复 30% 最大生命',effect:'heal',amount:.3,cooldown:11}}
 });
 
+Object.assign(ANIMALS, {
+    seal:{name:'海豹',emoji:'🦭',baseAttack:7,baseDefense:5,baseSpeed:7,baseHp:48,color:'#9fb9c5',unlocked:false},
+    whale:{name:'蓝鲸',emoji:'🐋',baseAttack:11,baseDefense:8,baseSpeed:4,baseHp:78,color:'#4f82a6',unlocked:false},
+    orca:{name:'虎鲸',emoji:'🐳',baseAttack:12,baseDefense:5,baseSpeed:8,baseHp:55,color:'#26374b',unlocked:false},
+    octopus:{name:'章鱼',emoji:'🐙',baseAttack:8,baseDefense:5,baseSpeed:6,baseHp:52,color:'#a65b9c',unlocked:false},
+    jellyfish:{name:'水母',emoji:'🪼',baseAttack:6,baseDefense:3,baseSpeed:9,baseHp:38,color:'#78bfe7',unlocked:false},
+    falcon:{name:'猎鹰',emoji:'🦅',baseAttack:10,baseDefense:3,baseSpeed:11,baseHp:38,color:'#8b6a48',unlocked:false},
+    albatross:{name:'信天翁',emoji:'🕊️',baseAttack:7,baseDefense:4,baseSpeed:10,baseHp:44,color:'#e8eef2',unlocked:false},
+    hummingbird:{name:'蜂鸟',emoji:'🐦',baseAttack:5,baseDefense:2,baseSpeed:13,baseHp:30,color:'#3fbd83',unlocked:false},
+    swan:{name:'天鹅',emoji:'🦢',baseAttack:7,baseDefense:5,baseSpeed:8,baseHp:50,color:'#f7f7f7',unlocked:false}
+});
+['seal','whale','orca','octopus','jellyfish','falcon','albatross','hummingbird','swan'].forEach(type => {
+    const hero=ANIMALS[type];
+    ABILITIES[type]=hero.baseSpeed>=10
+        ? {passive:{name:'迅捷',desc:'速度 +1',bonus:{speed:1}},active:{name:'俯冲冲撞',desc:'沿面向冲撞并造成伤害',effect:'dash',distance:190,cooldown:9}}
+        : {passive:{name:'猎手本能',desc:'攻击 +1',bonus:{attack:1}},active:{name:'实体突袭',desc:'发射穿透地图的实体攻击',effect:'empower',bonus:10,hits:1,cooldown:10}};
+});
+const OCEAN_TYPES=['dolphin','shark','axolotl','seal','whale','orca','octopus','jellyfish'];
+const SKY_TYPES=['eagle','owl','crane','phoenix','bat','parrot','falcon','albatross','hummingbird','swan'];
+function environmentFor(type){ return OCEAN_TYPES.includes(type)?'ocean':SKY_TYPES.includes(type)?'sky':'land'; }
+
 // 商城价格由英雄强度决定，不再受加入游戏的先后顺序影响。
 function calculateHeroPrice(hero) {
     const strength = hero.baseAttack * 2.8 + hero.baseDefense * 1.8 + hero.baseSpeed * 1.35 + hero.baseHp * 0.32;
@@ -290,6 +312,7 @@ let gameState = {
     stats: {
         coins: parseInt(localStorage.getItem('coins')) || 0,
         highScore: localStorage.getItem('highScore') || 0,
+        rankWins: parseInt(localStorage.getItem('rankWins')) || 0,
         killCount: 0,
         totalKillsEarned: parseInt(localStorage.getItem('totalKillsEarned')) || 0,  // 历史总击杀数
         leopardKills: parseInt(localStorage.getItem('leopardKills')) || 0,  // 已弃用，兼容旧存档
@@ -300,6 +323,7 @@ let gameState = {
 let controlMode = localStorage.getItem('controlMode') || 'desktop';
 const mobileInput = { x: 0, y: 0, active: false };
 const RANKED_RUN_SAVE_KEY = 'rankedTowerRun';
+const TOWER_RUN_SAVE_KEY = 'towerRun';
 let lastRankedSaveAt = 0;
 
 function spawnDamageNumber(target, amount, critical = false, source = '') {
@@ -315,13 +339,14 @@ function spawnDamageNumber(target, amount, critical = false, source = '') {
     });
 }
 
+function runSaveKey(mode = gameState.mode) { return mode === 'ranked' ? RANKED_RUN_SAVE_KEY : TOWER_RUN_SAVE_KEY; }
 function saveRankedRun() {
     const player = gameState.player;
-    if (gameState.mode !== 'ranked' || gameState.screen !== 'playing' || !player) return;
+    if (!['ranked','tower'].includes(gameState.mode) || gameState.screen !== 'playing' || !player) return;
     const fields = ['level','exp','expToLevel','attack','defense','speed','maxHp','hp','skills','regenBonus','critChance','lifesteal','skillPower','activeCooldownReduction','activeCooldown','empoweredHits','empoweredDamage','shieldHits','shieldReduction'];
     const playerState = { type: player.type };
     fields.forEach(field => { playerState[field] = player[field]; });
-    localStorage.setItem(RANKED_RUN_SAVE_KEY, JSON.stringify({
+    localStorage.setItem(runSaveKey(), JSON.stringify({
         player: playerState,
         level: gameState.world.level,
         time: gameState.world.time,
@@ -330,22 +355,22 @@ function saveRankedRun() {
     }));
 }
 
-function getSavedRankedRun() {
+function getSavedRankedRun(mode = gameState.mode) {
     try {
-        const saved = JSON.parse(localStorage.getItem(RANKED_RUN_SAVE_KEY) || 'null');
+        const saved = JSON.parse(localStorage.getItem(runSaveKey(mode)) || 'null');
         return saved && saved.player && ANIMALS[saved.player.type] ? saved : null;
     } catch (_) {
-        localStorage.removeItem(RANKED_RUN_SAVE_KEY);
+        localStorage.removeItem(runSaveKey(mode));
         return null;
     }
 }
 
-function clearRankedRun() { localStorage.removeItem(RANKED_RUN_SAVE_KEY); }
+function clearRankedRun(mode = gameState.mode) { localStorage.removeItem(runSaveKey(mode)); }
 
-function resumeRankedRun() {
-    const saved = getSavedRankedRun();
+function resumeRankedRun(mode = 'ranked') {
+    const saved = getSavedRankedRun(mode);
     if (!saved) return false;
-    gameState.mode = 'ranked';
+    gameState.mode = mode;
     document.getElementById('hallModal').classList.add('hidden');
     startGame(saved.player.type, saved);
     return true;
@@ -355,6 +380,14 @@ function updateControlLayout() {
     const joystick = document.getElementById('mobileJoystick');
     if (!joystick) return;
     joystick.style.display = gameState.screen === 'playing' && controlMode === 'mobile' ? 'block' : 'none';
+}
+
+async function toggleFullscreen() {
+    const container = document.getElementById('gameContainer');
+    try {
+        if (document.fullscreenElement || document.webkitFullscreenElement) await (document.exitFullscreen?.() || document.webkitExitFullscreen?.());
+        else await (container.requestFullscreen?.() || container.webkitRequestFullscreen?.());
+    } catch (_) { window.alert('当前浏览器不支持全屏，请使用浏览器的全屏按钮。'); }
 }
 function setControlMode(mode) {
     controlMode = mode === 'mobile' ? 'mobile' : 'desktop';
@@ -380,6 +413,7 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 canvas.width = GAME_WIDTH;
 canvas.height = GAME_HEIGHT;
+let nextParticleId = 1;
 
 // ============ 3D 渲染层 ============
 // 3D 库异步加载；失败时保留原 Canvas 画面，保证游戏仍可游玩。
@@ -525,7 +559,7 @@ function build3DMesh(entity, kind) {
     if (type === 'hedgehog') { for(let i=-3;i<=3;i++){ const spike=add(new Three.ConeGeometry(.11*size,.52*size,5),dark,i*.1*size,.77*size,.15*size); spike.rotation.z=i*.16; } }
     if (type === 'monkey') { add(new Three.SphereGeometry(.13,8,6),material,-.3*size,.78*size,0); add(new Three.SphereGeometry(.13,8,6),material,.3*size,.78*size,0); const tail=add(new Three.TorusGeometry(.28*size,.045*size,6,10,Math.PI),material,0,.42*size,.55*size); tail.rotation.x=Math.PI/2; }
     if (type === 'otter' || type === 'axolotl') { const tail=add(new Three.ConeGeometry(.18*size,.65*size,5),material,0,.36*size,.65*size); tail.rotation.x=Math.PI/2; if(type==='axolotl') [-.38,.38].forEach(x=>add(new Three.ConeGeometry(.08*size,.28*size,4),new Three.MeshStandardMaterial({color:0xff6fae}),x*size,.75*size,0)); }
-    if (['eagle','owl','crane','phoenix'].includes(type)) { wing(-.48); wing(.48); add(new Three.ConeGeometry(.11*size,.35*size,4), type==='phoenix' ? new Three.MeshStandardMaterial({color:0xff5b2e,emissive:0x551100}) : new Three.MeshStandardMaterial({color:0xffcc4a}), 0,.62*size,-.44*size).rotation.x=-Math.PI/2; }
+    if (['eagle','owl','crane','phoenix','falcon','albatross','hummingbird','swan'].includes(type)) { wing(-.48); wing(.48); add(new Three.ConeGeometry(.11*size,.35*size,4), type==='phoenix' ? new Three.MeshStandardMaterial({color:0xff5b2e,emissive:0x551100}) : new Three.MeshStandardMaterial({color:0xffcc4a}), 0,.62*size,-.44*size).rotation.x=-Math.PI/2; }
     if (type === 'owl') { add(new Three.SphereGeometry(.16,8,6),light,-.15*size,.72*size,-.34*size); add(new Three.SphereGeometry(.16,8,6),light,.15*size,.72*size,-.34*size); }
     if (type === 'crane') { const neck=add(new Three.CylinderGeometry(.08*size,.12*size,.7*size,7),light,0,1.05*size,.08*size); neck.rotation.z=.18; }
     if (type === 'phoenix') { for(let i=-2;i<=2;i++){ const flame=add(new Three.ConeGeometry(.1*size,.55*size,5),new Three.MeshStandardMaterial({color:0xff5b2e,emissive:0xaa2200,emissiveIntensity:.6}),i*.12*size,1.1*size,.2*size); flame.rotation.z=i*.18; } }
@@ -539,7 +573,7 @@ function build3DMesh(entity, kind) {
         group.userData.playerMarker = marker;
     }
     if (entity.isBoss) { const crown = add(new Three.ConeGeometry(.38 * size, .55 * size, 5), new Three.MeshStandardMaterial({ color: 0xffd54a, emissive: 0x775500 }), 0, 1.65 * size, 0); crown.rotation.y = Math.PI / 5; }
-    group.userData.flying = ['eagle', 'owl', 'crane', 'phoenix', 'bat', 'parrot'].includes(type);
+    group.userData.flying = ['eagle', 'owl', 'crane', 'phoenix', 'bat', 'parrot', 'falcon', 'albatross', 'hummingbird', 'swan'].includes(type);
     group.userData.wings = group.children.filter(child => child.geometry && child.geometry.type === 'ConeGeometry' && Math.abs(child.rotation.z) > 1);
     group.userData.legs = legs;
     group.userData.body = head;
@@ -579,7 +613,7 @@ function render3D() {
         sync(gameState.player, 'player', 'player');
         gameState.allies.forEach((ally, index) => sync(ally, 'ally', `ally-${index}-${ally.type}`));
         gameState.enemies.forEach((enemy, index) => sync(enemy, 'enemy', `enemy-${index}-${enemy.type}`));
-        gameState.particles.forEach((particle, index) => sync(particle, 'particle', `particle-${index}`));
+        gameState.particles.forEach(particle => sync(particle, 'particle', `particle-${particle.id}`));
         gameState.skillEffects.forEach((effect, index) => sync(effect, 'skill', `skill-${index}`));
         gameState.chests.forEach((chest, index) => sync(chest, 'chest', `chest-${index}`));
     }
@@ -592,6 +626,17 @@ function renderEnemyLabels() {
     if (!threeLabels) return;
     threeLabels.innerHTML = '';
     if (gameState.screen !== 'playing') return;
+    const active = gameState.player?.activeAbility;
+    if (active?.effect === 'dash' && gameState.player.activeCooldown <= 0) {
+        const player = gameState.player;
+        const start = new Three.Vector3(toWorld(player).x, .14, toWorld(player).z).project(threeCamera);
+        const target = { x: player.x + player.facing.x * active.distance, y: player.y + player.facing.y * active.distance };
+        const end = new Three.Vector3(toWorld(target).x, .14, toWorld(target).z).project(threeCamera);
+        const x1=(start.x*.5+.5)*100, y1=(-start.y*.5+.5)*100, x2=(end.x*.5+.5)*100, y2=(-end.y*.5+.5)*100;
+        const aim=document.createElement('div'); aim.className='dash-aim'; aim.style.left=`${x1}%`; aim.style.top=`${y1}%`;
+        aim.style.width=`${Math.hypot(x2-x1,y2-y1)}%`; aim.style.transform=`rotate(${Math.atan2(y2-y1,x2-x1)}rad)`;
+        threeLabels.appendChild(aim);
+    }
     gameState.enemies.forEach(enemy => {
         const pos = toWorld(enemy);
         const point = new Three.Vector3(pos.x, enemy.isBoss ? 2.8 : 1.35, pos.z).project(threeCamera);
@@ -736,12 +781,7 @@ class Character {
             this.hp = Math.min(this.maxHp, this.hp + active.amount);
             gameState.lastUpgradeNotice = `成长呼噜：生命上限 +${active.amount}，当前 ${this.maxHp} HP`;
         }
-        if (active.effect === 'dash') {
-            this.x += this.facing.x * active.distance;
-            this.y += this.facing.y * active.distance;
-            this.x = Math.max(this.radius, Math.min(GAME_WIDTH - this.radius, this.x));
-            this.y = Math.max(this.radius, Math.min(GAME_HEIGHT - this.radius, this.y));
-        }
+        // 冲撞由实体效果逐帧带着英雄前进，路径上的敌人也会受到伤害。
         if (active.effect === 'empower') {
             // 强化类技能改为实际飞行的攻击实体，不再只是面板上的临时加成。
             this.empoweredHits = 0;
@@ -862,6 +902,7 @@ class Enemy extends Character {
 // ============ 经验粒子 ============
 class Particle {
     constructor(x, y, type = 'exp', value = null) {
+        this.id = nextParticleId++;
         this.x = x;
         this.y = y;
         this.type = type; // 'exp' 或 'heal'
@@ -954,11 +995,12 @@ class SkillEffect {
         this.vx = 0;
         this.vy = 0;
         if (active.effect === 'empower') {
-            this.kind = 'projectile'; this.radius = 20; this.life = 55;
-            this.vx = owner.facing.x * 10; this.vy = owner.facing.y * 10;
+            this.kind = 'projectile'; this.radius = 20; this.life = 150;
+            this.vx = owner.facing.x * 12; this.vy = owner.facing.y * 12;
             this.damage = Math.ceil((owner.attack + active.bonus) * (1 + owner.skillPower));
         } else if (active.effect === 'dash') {
-            this.kind = 'impact'; this.radius = 58; this.life = 16;
+            this.kind = 'charge'; this.radius = 42; this.life = Math.ceil(active.distance / 14) + 2;
+            this.vx = owner.facing.x * 14; this.vy = owner.facing.y * 14;
             this.damage = Math.ceil(owner.attack * 1.35 * (1 + owner.skillPower));
         } else {
             this.kind = 'aura'; this.radius = active.effect === 'grow' ? 62 : 48; this.life = 75;
@@ -970,6 +1012,11 @@ class SkillEffect {
         if (this.kind === 'projectile') {
             this.x += this.vx * frameScale;
             this.y += this.vy * frameScale;
+        } else if (this.kind === 'charge') {
+            this.x += this.vx * frameScale; this.y += this.vy * frameScale;
+            this.x = Math.max(this.owner.radius, Math.min(GAME_WIDTH - this.owner.radius, this.x));
+            this.y = Math.max(this.owner.radius, Math.min(GAME_HEIGHT - this.owner.radius, this.y));
+            this.owner.x = this.x; this.owner.y = this.y;
         } else if (this.kind === 'aura') {
             this.x = this.owner.x; this.y = this.owner.y;
         }
@@ -1424,12 +1471,12 @@ function confirmPurchase(key) {
 }
 
 function chooseMode(mode) {
-    if (mode === 'ranked' && getSavedRankedRun()) {
+    if (['ranked','tower'].includes(mode) && getSavedRankedRun(mode)) {
         if (window.confirm('检测到未完成的排位爬塔挑战。\n确定：继续上次进度\n取消：开始新的挑战')) {
-            resumeRankedRun();
+            resumeRankedRun(mode);
             return;
         }
-        clearRankedRun();
+        clearRankedRun(mode);
     }
     gameState.mode = mode;
     document.getElementById('hallModal').classList.add('hidden');
@@ -1504,14 +1551,19 @@ function startGame(animalType, savedRun = null) {
     gameState.stats.killCount = 0;
     gameState.world.level = 1;
     gameState.world.time = 0;
-    if (savedRun && gameState.mode === 'ranked') {
+    gameState.environment = environmentFor(animalType);
+    if (render3DReady && threeScene) {
+        const sceneColor = gameState.environment === 'ocean' ? '#246d9c' : gameState.environment === 'sky' ? '#98d9ff' : '#87b9e8';
+        threeScene.background = new Three.Color(sceneColor); threeScene.fog.color = new Three.Color(sceneColor);
+    }
+    if (savedRun && ['ranked','tower'].includes(gameState.mode)) {
         const savedPlayer = savedRun.player;
         const fields = ['level','exp','expToLevel','attack','defense','speed','maxHp','hp','skills','regenBonus','critChance','lifesteal','skillPower','activeCooldownReduction','activeCooldown','empoweredHits','empoweredDamage','shieldHits','shieldReduction'];
         fields.forEach(field => { if (savedPlayer[field] !== undefined) gameState.player[field] = savedPlayer[field]; });
         gameState.world.level = Math.max(1, savedRun.level || 1);
         gameState.world.time = Math.max(0, savedRun.time || 0);
         gameState.stats.killCount = Math.max(0, savedRun.killCount || 0);
-    } else if (gameState.mode === 'ranked') {
+    } else if (['ranked','tower'].includes(gameState.mode)) {
         clearRankedRun();
     }
     lastFrameTime = null;
@@ -1538,7 +1590,10 @@ function spawnEnemies() {
         // 敌人可以是任何角色，不受解锁限制
         const bronzePool = ['cat', 'rabbit', 'fox', 'bear'];
         const midPool = [...bronzePool, 'tiger', 'eagle', 'wolf', 'deer', 'panda', 'monkey'];
-        const enemyPool = gameState.mode === 'ranked'
+        const environmentPool = gameState.environment === 'ocean' ? OCEAN_TYPES : gameState.environment === 'sky' ? SKY_TYPES : null;
+        const enemyPool = gameState.mode === 'ranked' && environmentPool
+            ? environmentPool
+            : gameState.mode === 'ranked'
             ? (gameState.world.level >= 25 ? Object.keys(ANIMALS) : gameState.world.level >= 10 ? midPool : gameState.rank.tier === 0 ? bronzePool : gameState.rank.tier <= 2 ? midPool : Object.keys(ANIMALS))
             : Object.keys(ANIMALS);
         let animalType = enemyPool[Math.floor(Math.random() * enemyPool.length)];
@@ -1677,6 +1732,7 @@ function checkCollisions() {
 function finishRankedMatch(won, rankRewardOverride = null) {
     gameState.screen = 'gameover';
     if (gameState.mode === 'ranked') clearRankedRun();
+    if (gameState.mode === 'ranked' && won) { gameState.stats.rankWins++; localStorage.setItem('rankWins', gameState.stats.rankWins); }
     accountExp(won ? 45 : 20);
     let rankReward = 0;
     if (gameState.mode === 'ranked') {
@@ -1752,6 +1808,7 @@ function updateTeamTargets() {
 }
 
 function endGame() {
+    if (gameState.mode === 'tower') clearRankedRun('tower');
     if (gameState.mode === 'ranked') {
         finishRankedMatch(false);
         return;
@@ -1818,6 +1875,7 @@ function showLevelUpSkills() {
     gameState.levelUpShown = true;
     
     const skillsToShow = [];
+    const canUseSkillDamage = ['empower', 'dash'].includes(gameState.player.activeAbility.effect);
     const pickSkill = () => {
         const roll = Math.random() * 100;
         let total = 0;
@@ -1826,8 +1884,9 @@ function showLevelUpSkills() {
             total += RARITY_INFO[key].weight;
             if (roll < total) { rarity = key; break; }
         }
-        const pool = SKILLS.filter(skill => skill.rarity === rarity && !skillsToShow.includes(skill));
-        const fallback = SKILLS.filter(skill => !skillsToShow.includes(skill));
+        const usable = SKILLS.filter(skill => canUseSkillDamage || (skill.type !== 'skillPower' && !(skill.value && skill.value.skillPower)));
+        const pool = usable.filter(skill => skill.rarity === rarity && !skillsToShow.includes(skill));
+        const fallback = usable.filter(skill => !skillsToShow.includes(skill));
         const source = pool.length ? pool : fallback;
         return source[Math.floor(Math.random() * source.length)];
     };
@@ -1865,6 +1924,7 @@ const keys = {};
 document.getElementById('towerModeButton').addEventListener('click', () => chooseMode('tower'));
 document.getElementById('rankedModeButton').addEventListener('click', () => chooseMode('ranked'));
 document.getElementById('teamModeButton').addEventListener('click', () => chooseMode('team'));
+document.getElementById('fullscreenButton').addEventListener('click', toggleFullscreen);
 document.getElementById('selectBackButton').addEventListener('click', cancelAnimalSelection);
 document.getElementById('signButton').addEventListener('click', claimDailySignIn);
 document.getElementById('desktopModeButton').addEventListener('click', () => setControlMode('desktop'));
@@ -2096,6 +2156,8 @@ function gameLoop(timestamp = performance.now()) {
 
 // 启动游戏
 window.addEventListener('load', () => {
+    const container = document.getElementById('gameContainer');
+    container.append(document.getElementById('playerStats'), document.getElementById('gameStats'));
     init();
     init3DRenderer();
 });

@@ -217,14 +217,24 @@ Object.assign(ANIMALS, {
     hummingbird:{name:'蜂鸟',emoji:'🐦',baseAttack:5,baseDefense:2,baseSpeed:13,baseHp:30,color:'#3fbd83',unlocked:false},
     swan:{name:'天鹅',emoji:'🦢',baseAttack:7,baseDefense:5,baseSpeed:8,baseHp:50,color:'#f7f7f7',unlocked:false}
 });
-['seal','whale','orca','octopus','jellyfish','falcon','albatross','hummingbird','swan'].forEach(type => {
+Object.assign(ANIMALS, {
+    condor:{name:'安第斯神鹰',emoji:'🦅',baseAttack:12,baseDefense:6,baseSpeed:7,baseHp:60,color:'#483c35',unlocked:false},
+    pelican:{name:'鹈鹕',emoji:'🦢',baseAttack:7,baseDefense:7,baseSpeed:6,baseHp:66,color:'#e6e0c7',unlocked:false},
+    flamingo:{name:'火烈鸟',emoji:'🦩',baseAttack:6,baseDefense:3,baseSpeed:11,baseHp:40,color:'#ef7fa8',unlocked:false},
+    raven:{name:'渡鸦',emoji:'🐦‍⬛',baseAttack:9,baseDefense:4,baseSpeed:10,baseHp:42,color:'#242632',unlocked:false},
+    pigeon:{name:'信鸽',emoji:'🕊️',baseAttack:5,baseDefense:3,baseSpeed:10,baseHp:34,color:'#b8c4d0',unlocked:false},
+    goose:{name:'大雁',emoji:'🪿',baseAttack:8,baseDefense:6,baseSpeed:7,baseHp:54,color:'#d8d7cf',unlocked:false},
+    cockatoo:{name:'凤头鹦鹉',emoji:'🦜',baseAttack:7,baseDefense:4,baseSpeed:9,baseHp:40,color:'#f3dc62',unlocked:false},
+    kitebird:{name:'风筝鹰',emoji:'🦅',baseAttack:10,baseDefense:3,baseSpeed:12,baseHp:38,color:'#8d5d45',unlocked:false}
+});
+['seal','whale','orca','octopus','jellyfish','falcon','albatross','hummingbird','swan','condor','pelican','flamingo','raven','pigeon','goose','cockatoo','kitebird'].forEach(type => {
     const hero=ANIMALS[type];
     ABILITIES[type]=hero.baseSpeed>=10
         ? {passive:{name:'迅捷',desc:'速度 +1',bonus:{speed:1}},active:{name:'俯冲冲撞',desc:'沿面向冲撞并造成伤害',effect:'dash',distance:190,cooldown:9}}
         : {passive:{name:'猎手本能',desc:'攻击 +1',bonus:{attack:1}},active:{name:'实体突袭',desc:'发射穿透地图的实体攻击',effect:'empower',bonus:10,hits:1,cooldown:10}};
 });
 const OCEAN_TYPES=['dolphin','shark','seal','whale','orca','octopus','jellyfish'];
-const SKY_TYPES=['eagle','owl','crane','phoenix','bat','parrot','falcon','albatross','hummingbird','swan'];
+const SKY_TYPES=['eagle','owl','crane','phoenix','bat','parrot','falcon','albatross','hummingbird','swan','condor','pelican','flamingo','raven','pigeon','goose','cockatoo','kitebird'];
 function environmentFor(type){ return OCEAN_TYPES.includes(type)?'ocean':SKY_TYPES.includes(type)?'sky':'land'; }
 
 // 商城价格由英雄强度决定，不再受加入游戏的先后顺序影响。
@@ -234,6 +244,19 @@ function calculateHeroPrice(hero) {
 }
 function calculateHeroPower(hero) {
     return Math.round(hero.baseAttack * 12 + hero.baseDefense * 8 + hero.baseSpeed * 7 + hero.baseHp * 1.2);
+}
+const HERO_RARITY_INFO = { normal:'普通', rare:'稀有', epic:'史诗', mythic:'神话', legendary:'传说' };
+function heroRarity(hero) {
+    const power = calculateHeroPower(hero);
+    if (power >= 330) return 'legendary';
+    if (power >= 300) return 'mythic';
+    if (power >= 260) return 'epic';
+    if (power >= 215) return 'rare';
+    return 'normal';
+}
+function heroRarityMarkup(hero) {
+    const rarity = heroRarity(hero);
+    return `<span class="hero-rarity hero-rarity-${rarity}">${HERO_RARITY_INFO[rarity]}</span>`;
 }
 function heroesByPower(entries = Object.entries(ANIMALS)) {
     return [...entries].sort(([, a], [, b]) => calculateHeroPower(a) - calculateHeroPower(b) || a.name.localeCompare(b.name));
@@ -254,10 +277,11 @@ const SKILLS = [
     { name:'强化爪击', desc:'攻击 +4', type:'attack', value:4, rarity:'normal' }, { name:'坚硬皮肤', desc:'防御 +3', type:'defense', value:3, rarity:'normal' }, { name:'轻盈步伐', desc:'速度 +2', type:'speed', value:2, rarity:'normal' }, { name:'生命活力', desc:'最大生命 +18', type:'hp', value:18, rarity:'normal' }, { name:'自然恢复', desc:'脱战回血 +1/秒', type:'regen', value:1, rarity:'normal' }, { name:'精准感知', desc:'暴击率 +5%', type:'crit', value:.05, rarity:'normal' }, { name:'技能增幅', desc:'实体技能伤害 +10%', type:'skillPower', value:.10, rarity:'normal' }, { name:'敏捷反应', desc:'主动技能冷却 -8%', type:'cooldown', value:.08, rarity:'normal' },
     { name:'凶猛打击', desc:'攻击 +8', type:'attack', value:8, rarity:'rare' }, { name:'铁壁防守', desc:'防御 +6', type:'defense', value:6, rarity:'rare' }, { name:'闪电速度', desc:'速度 +4', type:'speed', value:4, rarity:'rare' }, { name:'生命恢复', desc:'最大生命 +35', type:'hp', value:35, rarity:'rare' }, { name:'战斗自愈', desc:'脱战回血 +3/秒', type:'regen', value:3, rarity:'rare' }, { name:'弱点洞察', desc:'暴击率 +10%', type:'crit', value:.10, rarity:'rare' }, { name:'生命汲取', desc:'普攻吸血 +5%', type:'lifesteal', value:.05, rarity:'rare' }, { name:'实体过载', desc:'实体技能伤害 +25%', type:'skillPower', value:.25, rarity:'rare' },
     { name:'猎手本能', desc:'攻击 +10，速度 +2', type:'compound', value:{attack:10,speed:2}, rarity:'epic' }, { name:'不屈护甲', desc:'防御 +10，最大生命 +40', type:'compound', value:{defense:10,hp:40}, rarity:'epic' }, { name:'疾风回响', desc:'速度 +6，主动技能冷却 -18%', type:'compound', value:{speed:6,cooldown:.18}, rarity:'epic' }, { name:'嗜血连击', desc:'攻击 +7，吸血 +12%', type:'compound', value:{attack:7,lifesteal:.12}, rarity:'epic' }, { name:'元素共鸣', desc:'实体技能伤害 +45%，暴击率 +10%', type:'compound', value:{skillPower:.45,crit:.10}, rarity:'epic' },
+    { name:'神话战意', desc:'攻击 +14，暴击率 +14%', type:'compound', value:{attack:14,crit:.14}, rarity:'mythic' }, { name:'星辉护佑', desc:'防御 +14，最大生命 +65', type:'compound', value:{defense:14,hp:65}, rarity:'mythic' }, { name:'流光疾行', desc:'速度 +7，主动技能冷却 -26%', type:'compound', value:{speed:7,cooldown:.26}, rarity:'mythic' }, { name:'灵魂虹吸', desc:'攻击 +9，吸血 +18%，实体技能伤害 +25%', type:'compound', value:{attack:9,lifesteal:.18,skillPower:.25}, rarity:'mythic' },
     { name:'战神降临', desc:'攻击 +18，暴击率 +20%', type:'compound', value:{attack:18,crit:.20}, rarity:'legendary' }, { name:'不灭之躯', desc:'最大生命 +100，脱战回血 +8/秒', type:'compound', value:{hp:100,regen:8}, rarity:'legendary' }, { name:'时空掌控', desc:'速度 +8，主动技能冷却 -35%，实体技能伤害 +35%', type:'compound', value:{speed:8,cooldown:.35,skillPower:.35}, rarity:'legendary' }, { name:'全能王冠', desc:'攻击 +10，防御 +10，速度 +4，最大生命 +50', type:'compound', value:{attack:10,defense:10,speed:4,hp:50}, rarity:'legendary' }
 ];
 
-const RARITY_INFO = { normal:{label:'普通',weight:55}, rare:{label:'稀有',weight:28}, epic:{label:'史诗',weight:13}, legendary:{label:'传奇',weight:4} };
+const RARITY_INFO = { normal:{label:'普通',weight:55}, rare:{label:'稀有',weight:26}, epic:{label:'史诗',weight:12}, mythic:{label:'神话',weight:5}, legendary:{label:'传奇',weight:2} };
 
 const RANK_TIERS = ['青铜', '白银', '黄金', '铂金', '钻石', '星耀', '王者'];
 function loadRank() {
@@ -707,7 +731,7 @@ function build3DMesh(entity, kind) {
     if (type === 'hedgehog') { for(let i=-3;i<=3;i++){ const spike=add(new Three.ConeGeometry(.11*size,.52*size,5),dark,i*.1*size,.77*size,.15*size); spike.rotation.z=i*.16; } }
     if (type === 'monkey') { add(new Three.SphereGeometry(.13,8,6),material,-.3*size,.78*size,0); add(new Three.SphereGeometry(.13,8,6),material,.3*size,.78*size,0); const tail=add(new Three.TorusGeometry(.28*size,.045*size,6,10,Math.PI),material,0,.42*size,.55*size); tail.rotation.x=Math.PI/2; }
     if (type === 'otter' || type === 'axolotl') { const tail=add(new Three.ConeGeometry(.18*size,.65*size,5),material,0,.36*size,.65*size); tail.rotation.x=Math.PI/2; if(type==='axolotl') [-.38,.38].forEach(x=>add(new Three.ConeGeometry(.08*size,.28*size,4),new Three.MeshStandardMaterial({color:0xff6fae}),x*size,.75*size,0)); }
-    if (['eagle','owl','crane','phoenix','falcon','albatross','hummingbird','swan'].includes(type)) { wing(-.48); wing(.48); add(new Three.ConeGeometry(.11*size,.35*size,4), type==='phoenix' ? new Three.MeshStandardMaterial({color:0xff5b2e,emissive:0x551100}) : new Three.MeshStandardMaterial({color:0xffcc4a}), 0,.62*size,-.44*size).rotation.x=-Math.PI/2; }
+    if (['eagle','owl','crane','phoenix','falcon','albatross','hummingbird','swan','condor','pelican','flamingo','raven','pigeon','goose','cockatoo','kitebird'].includes(type)) { wing(-.48); wing(.48); add(new Three.ConeGeometry(.11*size,.35*size,4), type==='phoenix' ? new Three.MeshStandardMaterial({color:0xff5b2e,emissive:0x551100}) : new Three.MeshStandardMaterial({color:0xffcc4a}), 0,.62*size,-.44*size).rotation.x=-Math.PI/2; }
     if (type === 'owl') { add(new Three.SphereGeometry(.16,8,6),light,-.15*size,.72*size,-.34*size); add(new Three.SphereGeometry(.16,8,6),light,.15*size,.72*size,-.34*size); }
     if (type === 'crane') { const neck=add(new Three.CylinderGeometry(.08*size,.12*size,.7*size,7),light,0,1.05*size,.08*size); neck.rotation.z=.18; }
     if (type === 'phoenix') { for(let i=-2;i<=2;i++){ const flame=add(new Three.ConeGeometry(.1*size,.55*size,5),new Three.MeshStandardMaterial({color:0xff5b2e,emissive:0xaa2200,emissiveIntensity:.6}),i*.12*size,1.1*size,.2*size); flame.rotation.z=i*.18; } }
@@ -721,7 +745,7 @@ function build3DMesh(entity, kind) {
         group.userData.playerMarker = marker;
     }
     if (entity.isBoss) { const crown = add(new Three.ConeGeometry(.38 * size, .55 * size, 5), new Three.MeshStandardMaterial({ color: 0xffd54a, emissive: 0x775500 }), 0, 1.65 * size, 0); crown.rotation.y = Math.PI / 5; }
-    group.userData.flying = ['eagle', 'owl', 'crane', 'phoenix', 'bat', 'parrot', 'falcon', 'albatross', 'hummingbird', 'swan'].includes(type);
+    group.userData.flying = ['eagle', 'owl', 'crane', 'phoenix', 'bat', 'parrot', 'falcon', 'albatross', 'hummingbird', 'swan', 'condor', 'pelican', 'flamingo', 'raven', 'pigeon', 'goose', 'cockatoo', 'kitebird'].includes(type);
     group.userData.wings = group.children.filter(child => child.geometry && child.geometry.type === 'ConeGeometry' && Math.abs(child.rotation.z) > 1);
     group.userData.legs = legs;
     group.userData.body = head;
@@ -1639,7 +1663,7 @@ function openAccountPanel(kind) {
     const cards = (items) => `<div class="animals-grid">${items}</div>`;
     if (kind === 'hero') {
         title.textContent = '🦸 英雄图鉴';
-        content.innerHTML = cards(heroesByPower().map(([key, h]) => `<div class="animal-card" style="opacity:${h.unlocked ? 1 : .55}"><div class="animal-emoji">${heroIconMarkup(key, h)}</div><div class="animal-name">${h.name}</div><div class="animal-stats">战力 ${calculateHeroPower(h)}<br>${h.unlocked ? '已解锁' : h.signOnly ? '签到专属' : `售价 ${h.price} 金币`}</div></div>`).join(''));
+        content.innerHTML = cards(heroesByPower().map(([key, h]) => `<div class="animal-card" style="opacity:${h.unlocked ? 1 : .55}"><div class="animal-emoji">${heroIconMarkup(key, h)}</div><div>${heroRarityMarkup(h)}</div><div class="animal-name">${h.name}</div><div class="animal-stats">战力 ${calculateHeroPower(h)}<br>${h.unlocked ? '已解锁' : h.signOnly ? '签到专属' : `售价 ${h.price} 金币`}</div></div>`).join(''));
     } else if (kind === 'bag') {
         title.textContent = '🎒 背包';
         content.innerHTML = cards(`<div class="animal-card"><div class="animal-emoji">🪙</div><div class="animal-name">金币</div><div class="animal-stats">${gameState.stats.coins}</div></div><div class="animal-card"><div class="animal-emoji">🪪</div><div class="animal-name">改名卡</div><div class="animal-stats">数量 ×${gameState.account.inventory.renameCard || 0}</div><button class="btn btn-success" type="button" ${gameState.account.inventory.renameCard ? '' : 'disabled'} onclick="useRenameCard()">使用改名卡</button></div>`);
@@ -1649,7 +1673,7 @@ function openAccountPanel(kind) {
         title.textContent = '🛒 商城';
         content.innerHTML = cards(heroesByPower()
             .filter(([, h]) => !h.unlocked && !h.signOnly)
-            .map(([key,h]) => `<button class="animal-card" type="button" onclick="confirmPurchase('${key}')"><div class="animal-emoji">${heroIconMarkup(key, h)}</div><div class="animal-name">${h.name}</div><div class="animal-stats">战力 ${calculateHeroPower(h)}<br>🪙 ${h.price} 金币</div></button>`).join('') || '<div class="tip">当前可购买英雄已全部拥有。</div>');
+            .map(([key,h]) => `<button class="animal-card" type="button" onclick="confirmPurchase('${key}')"><div class="animal-emoji">${heroIconMarkup(key, h)}</div><div>${heroRarityMarkup(h)}</div><div class="animal-name">${h.name}</div><div class="animal-stats">战力 ${calculateHeroPower(h)}<br>🪙 ${h.price} 金币</div></button>`).join('') || '<div class="tip">当前可购买英雄已全部拥有。</div>');
     } else {
         title.textContent = '✉️ 邮件';
         const mails = getMails();
@@ -1729,6 +1753,7 @@ function showAnimalSelection() {
 
         card.innerHTML = `
             <div class="animal-emoji">${heroIconMarkup(key, animal)}</div>
+            <div>${heroRarityMarkup(animal)}</div>
             <div class="animal-name">${animal.name}</div>
             <div class="animal-stats">
                 ⚔️ ${animal.baseAttack}<br>
@@ -2113,7 +2138,7 @@ function showLevelUpSkills() {
         const roll = Math.random() * 100;
         let total = 0;
         let rarity = 'normal';
-        for (const key of ['normal', 'rare', 'epic', 'legendary']) {
+        for (const key of ['normal', 'rare', 'epic', 'mythic', 'legendary']) {
             total += RARITY_INFO[key].weight;
             if (roll < total) { rarity = key; break; }
         }

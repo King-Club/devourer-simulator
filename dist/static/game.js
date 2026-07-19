@@ -262,8 +262,10 @@ function heroesByPower(entries = Object.entries(ANIMALS)) {
     return [...entries].sort(([, a], [, b]) => calculateHeroPower(a) - calculateHeroPower(b) || a.name.localeCompare(b.name));
 }
 function heroIconMarkup(key, hero) {
-    if (key !== 'orca') return hero.emoji;
-    return '<span class="orca-icon" role="img" aria-label="虎鲸"><i></i><b class="orca-eye-patch"></b><b class="orca-belly-patch"></b></span>';
+    if (key === 'orca') return '<span class="orca-icon" role="img" aria-label="虎鲸"><i></i><b class="orca-eye-patch"></b><b class="orca-belly-patch"></b></span>';
+    const raptorIcons = { eagle:'eagle', falcon:'falcon', condor:'condor', kitebird:'kite' };
+    if (raptorIcons[key]) return `<span class="bird-icon bird-icon-${raptorIcons[key]}" role="img" aria-label="${hero.name}"><i></i><b></b><b></b><em></em></span>`;
+    return hero.emoji;
 }
 function refreshHeroPrices() {
     Object.values(ANIMALS).forEach(hero => {

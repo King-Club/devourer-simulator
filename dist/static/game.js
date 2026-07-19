@@ -932,6 +932,8 @@ class Character {
     }
 
     addExp(amount) {
+        // 5V5 是纯团队战，不产生等级、经验或升级选择。
+        if (gameState.mode === 'team') return false;
         this.exp += amount;
         return this.tryLevelUp();
     }
@@ -977,7 +979,7 @@ class Character {
     }
 
     useActiveSkill() {
-        if (gameState.screen !== 'playing' || this.activeCooldown > 0) return false;
+        if (gameState.screen !== 'playing' || this.activeCooldown > 0 || this.hp <= 0) return false;
 
         const active = this.activeAbility;
         if (active.effect === 'heal' || active.effect === 'healShield') {
@@ -1078,7 +1080,9 @@ class Enemy extends Character {
 
     update(frameScale = 1) {
         // Boss 会持续锁定玩家；普通敌人才保留随机巡逻行为。
-        if (this.isBoss && gameState.player) {
+        if (gameState.mode === 'team') {
+            // 团队模式的目标由 updateTeamTargets 分配，不能再被随机巡逻覆盖。
+        } else if (this.isBoss && gameState.player) {
             this.targetX = gameState.player.x;
             this.targetY = gameState.player.y;
         } else {
@@ -1956,6 +1960,9 @@ function checkCollisions() {
         }
     }
 
+    // 5V5 中阵亡玩家进入观战，不能继续攻击、吸血或被动复活。
+    if (gameState.mode === 'team' && player.hp <= 0) return;
+
     // 检测玩家与敌人的碰撞（战斗）
     for (let i = gameState.enemies.length - 1; i >= 0; i--) {
         const enemy = gameState.enemies[i];
@@ -2051,8 +2058,8 @@ function finishRankedMatch(won, rankRewardOverride = null) {
     let rankReward = 0;
     if (gameState.mode === 'ranked') {
         const floor = gameState.world.level;
+        // 排位爬塔：第 6/10/30 层分别 +1/+2/+3，50 层通关 +4；第 6 层前失败才扣星。
         if (rankRewardOverride !== null) rankReward = rankRewardOverride;
-        else if (won) rankReward = 1;
         else if (floor >= 30) rankReward = 3 + Math.floor((floor - 30) / 20);
         else if (floor >= 10) rankReward = 2;
         else if (floor >= 6) rankReward = 1;
@@ -2062,8 +2069,12 @@ function finishRankedMatch(won, rankRewardOverride = null) {
     }
     document.getElementById('gameOverTitle').textContent = gameState.mode === 'team' ? (won ? '🏆 团队胜利！' : '💥 团队落败') : (rankRewardOverride !== null ? '👑 排位爬塔登顶！' : won ? '🏅 排位胜利！' : '💥 排位落败');
     document.getElementById('characterInfo').innerHTML = `本局使用：<strong>${gameState.player.name} ${gameState.player.emoji}</strong><br>击败敌人：<strong>${gameState.stats.killCount}</strong>`;
-    document.getElementById('finalScore').textContent = gameState.mode === 'ranked' ? `${rankReward > 0 ? '+' : ''}${rankReward} 星（第 ${gameState.world.level} 层）` : (won ? '+1 星' : '-1 星');
-    document.getElementById('rankInfo').innerHTML = `当前段位：<strong>${rankLabel()}</strong>`;
+    document.getElementById('finalScore').textContent = gameState.mode === 'ranked'
+        ? `${rankReward > 0 ? '+' : ''}${rankReward} 星（第 ${gameState.world.level} 层）`
+        : '团队模式不影响段位星数';
+    document.getElementById('rankInfo').innerHTML = gameState.mode === 'team'
+        ? '本局为娱乐团队战，段位保持不变。'
+        : `当前段位：<strong>${rankLabel()}</strong>`;
     document.getElementById('restartButton').textContent = '🏠 返回大厅';
     document.getElementById('gameOverModal').classList.remove('hidden');
 }
@@ -2472,9 +2483,10 @@ function gameLoop(timestamp = performance.now()) {
     lastFrameTime = timestamp;
 
     if (gameState.screen === 'playing') {
-        handleInput();
+        if (gameState.player.hp > 0) handleInput();
+        else { gameState.player.vx = 0; gameState.player.vy = 0; }
         gameState.world.time += elapsedSeconds;
-        if (gameState.player.lastCombatTime !== undefined && gameState.world.time - gameState.player.lastCombatTime >= 5) {
+        if (gameState.player.hp > 0 && gameState.player.lastCombatTime !== undefined && gameState.world.time - gameState.player.lastCombatTime >= 5) {
             // 每完整一秒才结算一次回血，生命值始终保持整数。
             const player = gameState.player;
             player.regenProgress = (player.regenProgress || 0) + elapsedSeconds;

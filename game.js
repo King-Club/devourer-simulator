@@ -743,6 +743,7 @@ class Character {
         this.shieldHits = 0;
         this.shieldReduction = 0;
         this.regenBonus = 0;
+        this.regenProgress = 0;
         this.critChance = 0;
         this.lifesteal = 0;
         this.skillPower = 0;
@@ -2226,7 +2227,7 @@ function updateUI() {
     // HP条
     const hpPercent = Math.max(0, player.hp / player.maxHp) * 100;
     document.getElementById('hpBar').style.width = hpPercent + '%';
-    document.getElementById('hpText').textContent = `${Math.max(0, player.hp)}/${player.maxHp}`;
+    document.getElementById('hpText').textContent = `${Math.floor(Math.max(0, player.hp))}/${Math.floor(player.maxHp)}`;
     document.getElementById('upgradeNotice').textContent = gameState.lastUpgradeNotice || '';
 
     // 经验条
@@ -2256,7 +2257,17 @@ function gameLoop(timestamp = performance.now()) {
         handleInput();
         gameState.world.time += elapsedSeconds;
         if (gameState.player.lastCombatTime !== undefined && gameState.world.time - gameState.player.lastCombatTime >= 5) {
-            gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + elapsedSeconds * (3 + gameState.player.regenBonus));
+            // 每完整一秒才结算一次回血，生命值始终保持整数。
+            const player = gameState.player;
+            player.regenProgress = (player.regenProgress || 0) + elapsedSeconds;
+            const secondsToHeal = Math.floor(player.regenProgress);
+            if (secondsToHeal > 0) {
+                const healPerSecond = 1 + Math.max(0, Math.floor(player.regenBonus || 0));
+                player.hp = Math.min(player.maxHp, player.hp + secondsToHeal * healPerSecond);
+                player.regenProgress -= secondsToHeal;
+            }
+        } else {
+            gameState.player.regenProgress = 0;
         }
         gameState.player.update(frameScale);
         if (gameState.mode === 'tutorial' && gameState.tutorial && gameState.tutorial.step === 0 && Math.hypot(gameState.player.vx, gameState.player.vy) > .05) {

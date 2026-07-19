@@ -394,6 +394,13 @@ async function toggleFullscreen() {
         else await (container.requestFullscreen?.() || container.webkitRequestFullscreen?.());
     } catch (_) { window.alert('当前浏览器不支持全屏，请使用浏览器的全屏按钮。'); }
 }
+function enterGameFullscreen() {
+    const container = document.getElementById('gameContainer');
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) container.requestFullscreen?.().catch?.(() => {});
+}
+function exitGameFullscreen() {
+    if (document.fullscreenElement || document.webkitFullscreenElement) (document.exitFullscreen?.() || document.webkitExitFullscreen?.()).catch?.(() => {});
+}
 function setControlMode(mode) {
     controlMode = mode === 'mobile' ? 'mobile' : 'desktop';
     localStorage.setItem('controlMode', controlMode);
@@ -515,7 +522,7 @@ function build3DMesh(entity, kind) {
     }
 
     // 鲨鱼采用横向鱼身、尾鳍、背鳍和胸鳍，不再使用四脚动物的通用身体。
-    if (kind !== 'particle' && entity.type === 'shark') {
+    if (kind !== 'particle' && OCEAN_TYPES.includes(entity.type)) {
         const sharkBody = add(new Three.SphereGeometry(.42, 12, 8), material, 0, .53, .05, 1.5, .7, 2.25);
         add(new Three.SphereGeometry(.055, 7, 6), dark, -.16, .64, -.7);
         add(new Three.SphereGeometry(.055, 7, 6), dark, .16, .64, -.7);
@@ -1577,6 +1584,7 @@ function showAnimalSelection() {
 
 function startGame(animalType, savedRun = null) {
     document.getElementById('selectModal').classList.add('hidden');
+    enterGameFullscreen();
     gameState.screen = 'playing';
     gameState.levelUpShown = false;  // 重置升级标志
     gameState.player = new Character(animalType);
@@ -1768,6 +1776,7 @@ function checkCollisions() {
 
 function finishRankedMatch(won, rankRewardOverride = null) {
     gameState.screen = 'gameover';
+    exitGameFullscreen();
     if (gameState.mode === 'ranked') clearRankedRun();
     if (gameState.mode === 'ranked' && won) { gameState.stats.rankWins++; localStorage.setItem('rankWins', gameState.stats.rankWins); }
     accountExp(won ? 45 : 20);
@@ -1845,6 +1854,7 @@ function updateTeamTargets() {
 }
 
 function endGame() {
+    exitGameFullscreen();
     if (gameState.mode === 'tower') clearRankedRun('tower');
     if (gameState.mode === 'ranked') {
         finishRankedMatch(false);
@@ -1909,6 +1919,7 @@ function endGame() {
 function showLevelUpSkills() {
     // 防止重复生成技能卡片
     if (gameState.levelUpShown) return;
+    exitGameFullscreen();
     gameState.levelUpShown = true;
     
     const skillsToShow = [];

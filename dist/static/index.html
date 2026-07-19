@@ -66,6 +66,10 @@
             border-left: 1px solid #d8dee8;
         }
         #playerStats { top:10px; left:50%; transform:translateX(-100%); border-radius:10px 0 0 10px; }
+        #playerStats, #gameStats { background:rgba(255,255,255,.72); padding:6px 9px; font-size:12px; max-width:260px; }
+        #playerStats .stat-bar { margin:2px 0; }
+        #playerStats .stat-bar-fill { width:92px; }
+        #playerStats .ability-info, #playerStats #upgradeNotice { display:none; }
         #fullscreenButton { position:absolute; z-index:260; right:12px; bottom:12px; }
         #gameContainer:fullscreen, #gameContainer:-webkit-full-screen { width:100vw; height:100vh; border-radius:0; }
 
@@ -116,7 +120,7 @@
         .device-choice { display:flex; gap:8px; margin-top:10px; }
         .device-choice .btn { flex:1; }
         .device-choice .selected { outline:3px solid #ffd84d; background:#3fa66d; }
-        @media (max-width: 1050px) { #gameContainer { width:100vw; height:70vw; max-height:100vh; border-radius:0; } #playerStats,#gameStats { font-size:11px; padding:7px 9px; } #fullscreenButton { right:10px; bottom:10px; } .modal-content { max-width:92vw; max-height:92vh; overflow:auto; } }
+        @media (max-width: 1050px) { #gameContainer { width:100vw; height:70vw; max-height:100vh; border-radius:0; } #playerStats,#gameStats { font-size:10px; padding:5px 6px; max-width:48vw; } #playerStats .stat-bar-fill { width:64px; } #fullscreenButton { right:10px; bottom:10px; } .modal-content { max-width:92vw; max-height:92vh; overflow:auto; } }
 
         .ability-info {
             margin-top: 10px;
@@ -438,6 +442,6 @@
         </div>
     </div>
 
-    <script src="game.js?v=2.8.1"></script>
+    <script src="game.js?v=2.8.2"></script>
 </body>
 </html>

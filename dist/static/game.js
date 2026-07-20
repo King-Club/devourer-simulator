@@ -966,8 +966,8 @@ function render3D() {
         // 爪击、啄击与冲撞都用短促的前探动作表现；Boss 咆哮时会明显放大。
         if (entity.attackFlash > 0) {
             const hit = Math.min(1, entity.attackFlash / 10);
-            mesh.scale.setScalar(1 + (entity.bossRoar ? .18 : .06) * hit);
-            mesh.position.z -= (entity.bossRoar ? .22 : .1) * hit;
+            mesh.scale.setScalar(1 + (entity.bossRoar ? .34 : .06) * hit);
+            mesh.position.z -= (entity.bossRoar ? .38 : .1) * hit;
         } else mesh.scale.setScalar(1);
     };
     if (gameState.screen === 'playing' && gameState.player) {
@@ -1960,7 +1960,8 @@ function openAccountPanel(kind) {
     } else {
         title.textContent = '✉️ 邮件';
         const mails = getMails();
-        content.innerHTML = mails.length ? mails.map((m, index) => `<div class="skill-card"><div class="skill-name">${m.system ? '系统邮件' : '好友邮件'} · ${m.title}</div><div class="skill-desc">${m.content}</div><button class="btn ${m.claimed ? '' : 'btn-success'}" type="button" ${m.claimed ? 'disabled' : ''} onclick="claimMail(${index})">${m.claimed ? '已领取' : '领取附件'}</button></div>`).join('') : '<div class="tip">暂无邮件。好友邮件需要联机服务支持。</div>';
+        const unclaimed = mails.filter(mail => !mail.claimed).length;
+        content.innerHTML = mails.length ? `<button class="btn btn-success" type="button" ${unclaimed ? '' : 'disabled'} onclick="claimAllMails()">🎁 一键领取${unclaimed ? `（${unclaimed}）` : ''}</button>` + mails.map((m, index) => `<div class="skill-card"><div class="skill-name">${m.system ? '系统邮件' : '好友邮件'} · ${m.title}</div><div class="skill-desc">${m.content}</div><button class="btn ${m.claimed ? '' : 'btn-success'}" type="button" ${m.claimed ? 'disabled' : ''} onclick="claimMail(${index})">${m.claimed ? '已领取' : '领取附件'}</button></div>`).join('') : '<div class="tip">暂无邮件。好友邮件需要联机服务支持。</div>';
     }
     document.getElementById('hallModal').classList.add('hidden');
     document.getElementById('subPageModal').classList.remove('hidden');
@@ -2371,9 +2372,15 @@ function updateBossSkills() {
         boss.bossSkillCooldown = 7 * TARGET_FPS;
         boss.bossRoar = true;
         boss.lastActionText = boss.bossSkillName || '王者猛击';
-        boss.attackFlash = 18;
+        boss.attackFlash = 42;
         player.lastCombatTime = gameState.world.time;
         spawnDamageNumber(player, actualDamage, false, 'BOSS!');
+        // 咆哮会在 Boss 脚下释放一圈持续扩散的红色冲击波。
+        const roar = new SkillEffect(boss, { name: boss.lastActionText, effect: 'roar' });
+        roar.radius = 118;
+        roar.life = 42;
+        roar.color = '#ff513d';
+        gameState.skillEffects.push(roar);
     }
 }
 
@@ -2758,7 +2765,10 @@ function gameLoop(timestamp = performance.now()) {
             player.regenProgress = (player.regenProgress || 0) + elapsedSeconds;
             const secondsToHeal = Math.floor(player.regenProgress);
             if (secondsToHeal > 0) {
-                const healPerSecond = 1 + Math.max(0, Math.floor(player.regenBonus || 0));
+                // 脱战刚开始每秒只回 1 点；每持续 3 秒额外加快 1 点，最多加快到 12 点/秒。
+                const outOfCombatSeconds = gameState.world.time - player.lastCombatTime - 5;
+                const acceleration = Math.min(11, Math.floor(Math.max(0, outOfCombatSeconds) / 3));
+                const healPerSecond = 1 + acceleration + Math.max(0, Math.floor(player.regenBonus || 0));
                 player.hp = Math.min(player.maxHp, player.hp + secondsToHeal * healPerSecond);
                 player.regenProgress -= secondsToHeal;
             }

@@ -244,6 +244,8 @@ Object.assign(ANIMALS, {
 const POLAR_HERO_KEYS=['polarBear','arcticFox','penguin','walrus','snowOwl','muskOx','arcticHare','arcticWolf','puffin','narwhal','emperorPenguin','reindeer'];
 // 极地奖励按强度逐步发放：先史诗，再神话，最后才是传说。
 const POLAR_REWARD_ORDER=['penguin','snowOwl','reindeer','arcticWolf','narwhal','emperorPenguin','polarBear','walrus','muskOx','arcticFox','arcticHare','puffin'];
+const POLAR_RANK_REWARDS=['penguin','snowOwl','reindeer','arcticWolf','narwhal','emperorPenguin'];
+const POLAR_LEVEL_REWARDS=['polarBear','walrus','muskOx','arcticFox','arcticHare','puffin'];
 POLAR_HERO_KEYS.forEach(key => { ANIMALS[key].rewardOnly = true; });
 ['seal','whale','orca','octopus','jellyfish','falcon','albatross','hummingbird','swan','condor','pelican','flamingo','raven','pigeon','goose','cockatoo','kitebird','polarBear','arcticFox','penguin','walrus','snowOwl','muskOx','arcticHare','arcticWolf','puffin','narwhal','emperorPenguin','reindeer'].forEach(type => {
     const hero=ANIMALS[type];
@@ -1907,6 +1909,18 @@ function sendPolarHeroReward(title) {
     if (!hero) return;
     sendRewardMail(title, `恭喜达成目标！北极英雄 ${ANIMALS[hero].name} 已送到邮件附件，请手动领取。`, { hero });
 }
+function polarUnlockCondition(key) {
+    const rankIndex = POLAR_RANK_REWARDS.indexOf(key);
+    if (rankIndex >= 0) return `段位达到 ${RANK_TIERS[rankIndex + 1]} 时邮件领取`;
+    const levelIndex = POLAR_LEVEL_REWARDS.indexOf(key);
+    if (levelIndex >= 0) return `账号达到 Lv.${(levelIndex + 1) * 5} 时邮件领取`;
+    return '英雄之路奖励领取';
+}
+function sendSpecificPolarHeroReward(title, hero) {
+    const pending = getMails().some(mail => !mail.claimed && mail.rewards?.hero === hero);
+    if (!hero || ANIMALS[hero].unlocked || pending) return;
+    sendRewardMail(title, `恭喜达成目标！北极英雄 ${ANIMALS[hero].name} 已送到邮件附件，请手动领取。`, { hero });
+}
 
 function rebalancePendingPolarRewards() {
     const mails = getMails();
@@ -1930,7 +1944,7 @@ function grantEligiblePolarRewards() {
     let rewardedRankTier = Math.max(0, parseInt(localStorage.getItem('polarRankRewardTier')) || 0);
     while (rewardedRankTier < reachedRankTier) {
         rewardedRankTier++;
-        sendPolarHeroReward(`段位晋升奖励 · ${RANK_TIERS[rewardedRankTier]}`);
+        sendSpecificPolarHeroReward(`段位晋升奖励 · ${RANK_TIERS[rewardedRankTier]}`, POLAR_RANK_REWARDS[rewardedRankTier - 1]);
     }
     localStorage.setItem('polarRankRewardTier', rewardedRankTier);
 
@@ -1938,7 +1952,7 @@ function grantEligiblePolarRewards() {
     let rewardedLevelMilestone = Math.max(0, parseInt(localStorage.getItem('polarLevelRewardMilestone')) || 0);
     while (rewardedLevelMilestone < reachedLevelMilestone) {
         rewardedLevelMilestone++;
-        sendPolarHeroReward(`账号 Lv.${rewardedLevelMilestone * 5} 奖励`);
+        sendSpecificPolarHeroReward(`账号 Lv.${rewardedLevelMilestone * 5} 奖励`, POLAR_LEVEL_REWARDS[rewardedLevelMilestone - 1]);
     }
     localStorage.setItem('polarLevelRewardMilestone', rewardedLevelMilestone);
 }
@@ -2061,11 +2075,11 @@ function openAccountPanel(kind) {
     const cards = (items) => `<div class="animals-grid">${items}</div>`;
     if (kind === 'hero') {
         title.textContent = '🦸 英雄图鉴';
-        content.innerHTML = cards(heroesByPower().map(([key, h]) => `<div class="animal-card" style="opacity:${h.unlocked ? 1 : .55}"><div class="animal-emoji">${heroIconMarkup(key, h)}</div><div>${heroRarityMarkup(h)}</div><div class="animal-name">${h.name}</div><div class="animal-stats">战力 ${calculateHeroPower(h)}<br>${h.unlocked ? '已解锁' : h.rewardOnly ? '极地奖励专属：英雄之路查看段位 / 等级条件' : h.signOnly ? '签到专属' : `售价 ${h.price} 金币`}</div></div>`).join(''));
+        content.innerHTML = cards(heroesByPower().map(([key, h]) => `<div class="animal-card" style="opacity:${h.unlocked ? 1 : .55}"><div class="animal-emoji">${heroIconMarkup(key, h)}</div><div>${heroRarityMarkup(h)}</div><div class="animal-name">${h.name}</div><div class="animal-stats">战力 ${calculateHeroPower(h)}<br>${h.unlocked ? '已解锁' : h.rewardOnly ? `❄️ ${polarUnlockCondition(key)}` : h.signOnly ? '签到专属' : `售价 ${h.price} 金币`}</div></div>`).join(''));
     } else if (kind === 'road') {
         title.textContent = '🧭 英雄之路';
-        const rankRoad = RANK_TIERS.slice(1).map((tier, index) => `<div class="skill-card"><div class="skill-name">${gameState.rank.tier >= index + 1 ? '✅' : '🔒'} 晋升 ${tier}</div><div class="skill-desc">奖励：${ANIMALS[POLAR_REWARD_ORDER[index]].emoji} ${ANIMALS[POLAR_REWARD_ORDER[index]].name}（按极地奖励顺序发放）</div></div>`).join('');
-        const levelRoad = [5,10,15,20,25,30].map((level, index) => `<div class="skill-card"><div class="skill-name">${gameState.account.level >= level ? '✅' : '🔒'} 账号 Lv.${level}</div><div class="skill-desc">奖励：北极英雄邮件。当前账号等级：Lv.${gameState.account.level}</div></div>`).join('');
+        const rankRoad = RANK_TIERS.slice(1).map((tier, index) => `<div class="skill-card"><div class="skill-name">${gameState.rank.tier >= index + 1 ? '✅' : '🔒'} 晋升 ${tier}</div><div class="skill-desc">奖励：${heroIconMarkup(POLAR_RANK_REWARDS[index], ANIMALS[POLAR_RANK_REWARDS[index]])} ${ANIMALS[POLAR_RANK_REWARDS[index]].name}</div></div>`).join('');
+        const levelRoad = [5,10,15,20,25,30].map((level, index) => `<div class="skill-card"><div class="skill-name">${gameState.account.level >= level ? '✅' : '🔒'} 账号 Lv.${level}</div><div class="skill-desc">奖励：${heroIconMarkup(POLAR_LEVEL_REWARDS[index], ANIMALS[POLAR_LEVEL_REWARDS[index]])} ${ANIMALS[POLAR_LEVEL_REWARDS[index]].name}。当前账号等级：Lv.${gameState.account.level}</div></div>`).join('');
         content.innerHTML = `<div style="display:flex;gap:10px;margin-bottom:14px"><button class="btn btn-primary" type="button" onclick="switchHeroRoad('rank')">🏆 段位奖励</button><button class="btn" type="button" onclick="switchHeroRoad('level')">📊 等级奖励</button></div><div id="heroRoadRank"><h3>🏆 段位奖励</h3>${rankRoad}</div><div id="heroRoadLevel" style="display:none"><h3>📊 等级奖励</h3>${levelRoad}</div>`;
     } else if (kind === 'bag') {
         title.textContent = '🎒 背包';
@@ -2159,7 +2173,7 @@ function showAnimalSelection() {
         let lockedHint = '';
         if (animal.unlocked === false) {
             lockedHint = animal.rewardOnly
-                ? '❄️ 极地奖励专属：段位晋升或每 5 级账号奖励领取'
+                ? `❄️ ${polarUnlockCondition(key)}`
                 : animal.signOnly
                 ? `📅 签到专属：第 ${key === 'fox' ? 2 : 7} 天领取`
                 : `🪙 ${animal.price} 金币购买<br><small>当前金币: ${gameState.stats.coins}</small>`;

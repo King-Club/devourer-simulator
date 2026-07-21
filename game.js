@@ -251,11 +251,17 @@ POLAR_HERO_KEYS.forEach(key => { ANIMALS[key].rewardOnly = true; });
         ? {passive:{name:'迅捷',desc:'速度 +1',bonus:{speed:1}},active:{name:'俯冲冲撞',desc:'沿面向冲撞并造成伤害',effect:'dash',distance:190,cooldown:9}}
         : {passive:{name:'猎手本能',desc:'攻击 +1',bonus:{attack:1}},active:{name:'实体突袭',desc:'发射穿透地图的实体攻击',effect:'empower',bonus:10,hits:1,cooldown:10}};
 });
+Object.assign(ABILITIES, {
+    hedgehog:{ passive:{name:'尖刺护甲',desc:'防御 +1',bonus:{defense:1}}, active:{name:'荆棘反伤',desc:'接下来 4 次受击反弹 50% 实际伤害',effect:'reflect',hits:4,ratio:.5,cooldown:12}},
+    octopus:{ passive:{name:'拟态',desc:'速度 +1',bonus:{speed:1}}, active:{name:'墨汁喷射',desc:'附近敌人减速，自己加速 3 秒',effect:'ink',cooldown:11}},
+    jellyfish:{ passive:{name:'电流毒素',desc:'攻击 +1',bonus:{attack:1}}, active:{name:'毒刺云',desc:'附近敌人中毒并持续掉血',effect:'poison',cooldown:12}}
+});
 const OCEAN_TYPES=['dolphin','shark','seal','whale','orca','octopus','jellyfish'];
 const SKY_TYPES=['eagle','owl','crane','phoenix','bat','parrot','falcon','albatross','hummingbird','swan','condor','pelican','raven','pigeon','goose','cockatoo','kitebird'];
 const POLAR_TYPES=POLAR_HERO_KEYS;
-const LAND_TYPES=Object.keys(ANIMALS).filter(type => !OCEAN_TYPES.includes(type) && !SKY_TYPES.includes(type) && !POLAR_TYPES.includes(type));
-function environmentFor(type){ return OCEAN_TYPES.includes(type)?'ocean':SKY_TYPES.includes(type)?'sky':POLAR_TYPES.includes(type)?'polar':'land'; }
+const POND_TYPES=['crocodile','axolotl','otter'];
+const LAND_TYPES=Object.keys(ANIMALS).filter(type => !OCEAN_TYPES.includes(type) && !SKY_TYPES.includes(type) && !POLAR_TYPES.includes(type) && !POND_TYPES.includes(type));
+function environmentFor(type){ return OCEAN_TYPES.includes(type)?'ocean':SKY_TYPES.includes(type)?'sky':POLAR_TYPES.includes(type)?'polar':POND_TYPES.includes(type)?'pond':'land'; }
 
 // 商城价格由英雄强度决定，不再受加入游戏的先后顺序影响。
 function calculateHeroPrice(hero) {
@@ -284,6 +290,8 @@ function heroesByPower(entries = Object.entries(ANIMALS)) {
 function heroIconMarkup(key, hero) {
     if (key === 'orca') return '<span class="orca-icon" role="img" aria-label="虎鲸"><i></i><b class="orca-eye-patch"></b><b class="orca-belly-patch"></b></span>';
     if (key === 'bear') return '<span class="black-bear-icon" role="img" aria-label="黑熊"><i></i><b></b><b></b></span>';
+    if (key === 'pigeon') return '<span class="pigeon-icon" role="img" aria-label="信鸽"><i>✉</i></span>';
+    if (key === 'snowOwl') return '<span class="snow-owl-icon" role="img" aria-label="白色雪鸮">🦉</span>';
     const raptorIcons = { eagle:'eagle', falcon:'falcon', condor:'condor', kitebird:'kite' };
     if (raptorIcons[key]) return `<span class="bird-icon bird-icon-${raptorIcons[key]}" role="img" aria-label="${hero.name}"><i></i><b></b><b></b><em></em></span>`;
     return hero.emoji;
@@ -303,6 +311,13 @@ const SKILLS = [
     { name:'神话战意', desc:'攻击 +14，暴击率 +14%', type:'compound', value:{attack:14,crit:.14}, rarity:'mythic' }, { name:'星辉护佑', desc:'防御 +14，最大生命 +65', type:'compound', value:{defense:14,hp:65}, rarity:'mythic' }, { name:'流光疾行', desc:'速度 +7，主动技能冷却 -26%', type:'compound', value:{speed:7,cooldown:.26}, rarity:'mythic' }, { name:'灵魂虹吸', desc:'攻击 +9，吸血 +18%，实体技能伤害 +25%', type:'compound', value:{attack:9,lifesteal:.18,skillPower:.25}, rarity:'mythic' },
     { name:'战神降临', desc:'攻击 +18，暴击率 +20%', type:'compound', value:{attack:18,crit:.20}, rarity:'legendary' }, { name:'不灭之躯', desc:'最大生命 +100，脱战回血 +8/秒', type:'compound', value:{hp:100,regen:8}, rarity:'legendary' }, { name:'时空掌控', desc:'速度 +8，主动技能冷却 -35%，实体技能伤害 +35%', type:'compound', value:{speed:8,cooldown:.35,skillPower:.35}, rarity:'legendary' }, { name:'全能王冠', desc:'攻击 +10，防御 +10，速度 +4，最大生命 +50', type:'compound', value:{attack:10,defense:10,speed:4,hp:50}, rarity:'legendary' }
 ];
+SKILLS.push(
+    { name:'连击节奏', desc:'连击率 +8%', type:'combo', value:.08, rarity:'normal' },
+    { name:'双重追击', desc:'攻击 +3，连击率 +14%', type:'compound', value:{attack:3,combo:.14}, rarity:'rare' },
+    { name:'疾影连斩', desc:'速度 +3，连击率 +20%', type:'compound', value:{speed:3,combo:.20}, rarity:'epic' },
+    { name:'无尽连击', desc:'攻击 +8，连击率 +28%', type:'compound', value:{attack:8,combo:.28}, rarity:'mythic' },
+    { name:'风暴连环', desc:'攻击 +14，连击率 +35%，暴击率 +10%', type:'compound', value:{attack:14,combo:.35,crit:.10}, rarity:'legendary' }
+);
 
 const RARITY_INFO = { normal:{label:'普通',weight:55}, rare:{label:'稀有',weight:26}, epic:{label:'史诗',weight:12}, mythic:{label:'神话',weight:5}, legendary:{label:'传奇',weight:2} };
 
@@ -419,7 +434,7 @@ function restoreSavedEnemies(savedEnemies) {
 function saveRankedRun() {
     const player = gameState.player;
     if (!['ranked','tower'].includes(gameState.mode) || gameState.screen !== 'playing' || !player) return;
-    const fields = ['x','y','level','exp','expToLevel','attack','defense','speed','maxHp','hp','skills','regenBonus','critChance','lifesteal','skillPower','activeCooldownReduction','activeCooldown','empoweredHits','empoweredDamage','shieldHits','shieldReduction'];
+    const fields = ['x','y','level','exp','expToLevel','attack','defense','speed','maxHp','hp','skills','regenBonus','critChance','comboChance','lifesteal','skillPower','activeCooldownReduction','activeCooldown','empoweredHits','empoweredDamage','shieldHits','shieldReduction'];
     const playerState = { type: player.type };
     fields.forEach(field => { playerState[field] = player[field]; });
     localStorage.setItem(runSaveKey(), JSON.stringify({
@@ -507,7 +522,7 @@ let nextParticleId = 1;
 // ============ 3D 渲染层 ============
 // 3D 库异步加载；失败时保留原 Canvas 画面，保证游戏仍可游玩。
 let render3DReady = false;
-let Three, threeRenderer, threeScene, threeCamera, threeMeshes, threeLabels, threeNature, threeGround, threeGrid, threeOceanDecor, threePolarDecor, threeSkyDecor, threeForestDecor;
+let Three, threeRenderer, threeScene, threeCamera, threeMeshes, threeLabels, threeNature, threeGround, threeGrid, threeOceanDecor, threePolarDecor, threeSkyDecor, threeForestDecor, threePondDecor;
 
 async function init3DRenderer() {
     try {
@@ -666,8 +681,24 @@ async function init3DRenderer() {
                 const grass=new THREE.Mesh(new THREE.CylinderGeometry(.28,.33,.08,7),new THREE.MeshStandardMaterial({color:0x63a85c,flatShading:true})); grass.position.set(x,.46,z); skyDecor.add(grass);
             }
         }
+        const skySun = new THREE.Mesh(new THREE.SphereGeometry(.72,12,8),new THREE.MeshStandardMaterial({color:0xffe08a,emissive:0xffb13b,emissiveIntensity:.65}));
+        skySun.position.set(-8,2.6,-6); skyDecor.add(skySun);
+        const rainbowMat = new THREE.MeshStandardMaterial({color:0xc1a8ff,emissive:0x7254bf,emissiveIntensity:.22,transparent:true,opacity:.7});
+        const rainbow = new THREE.Mesh(new THREE.TorusGeometry(4.7,.06,6,32,Math.PI),rainbowMat); rainbow.rotation.x=Math.PI/2; rainbow.rotation.z=Math.PI; rainbow.position.set(2,1.4,5); skyDecor.add(rainbow);
         threeSkyDecor = skyDecor;
         threeScene.add(skyDecor);
+        // 池塘场景：荷叶、芦苇、睡莲和波光，不产生碰撞。
+        const pondDecor = new THREE.Group();
+        const waterMat = new THREE.MeshStandardMaterial({ color:0x4b9fb0, emissive:0x123b4a, emissiveIntensity:.18, roughness:.38, metalness:.1 });
+        const water = new THREE.Mesh(new THREE.CircleGeometry(8.2, 48), waterMat); water.rotation.x=-Math.PI/2; water.position.y=.025; pondDecor.add(water);
+        const reedMat = new THREE.MeshStandardMaterial({ color:0x426d35, roughness:.85, flatShading:true });
+        const lilyMat = new THREE.MeshStandardMaterial({ color:0x4f9d52, roughness:.7, flatShading:true });
+        for (let i=0;i<34;i++) {
+            const angle=Math.random()*Math.PI*2, radius=2.5+Math.random()*5.2, x=Math.cos(angle)*radius, z=Math.sin(angle)*radius;
+            if (i%2===0) { const lily=new THREE.Mesh(new THREE.CircleGeometry(.16+Math.random()*.15,8),lilyMat); lily.rotation.x=-Math.PI/2; lily.position.set(x,.07,z); pondDecor.add(lily); }
+            else for(let blade=-1;blade<=1;blade++){ const reed=new THREE.Mesh(new THREE.CylinderGeometry(.018,.028,.55+Math.random()*.38,5),reedMat); reed.position.set(x+blade*.05,.35,z); reed.rotation.z=blade*.18; pondDecor.add(reed); }
+        }
+        threePondDecor=pondDecor; threeScene.add(pondDecor);
         threeMeshes = new Map();
         render3DReady = true;
         applySceneEnvironment();
@@ -680,15 +711,17 @@ function applySceneEnvironment() {
     const ocean = gameState.environment === 'ocean';
     const sky = gameState.environment === 'sky';
     const polar = gameState.environment === 'polar';
-    if (threeNature) threeNature.visible = !ocean && !sky && !polar;
-    if (threeForestDecor) threeForestDecor.visible = !ocean && !sky && !polar;
+    const pond = gameState.environment === 'pond';
+    if (threeNature) threeNature.visible = !ocean && !sky && !polar && !pond;
+    if (threeForestDecor) threeForestDecor.visible = !ocean && !sky && !polar && !pond;
     if (threeOceanDecor) threeOceanDecor.visible = ocean;
     if (threePolarDecor) threePolarDecor.visible = polar;
     if (threeSkyDecor) threeSkyDecor.visible = sky;
-    if (threeGrid) threeGrid.visible = !ocean && !sky && !polar;
-    if (threeGround) threeGround.material.color.setHex(ocean ? 0xbba76e : polar ? 0xe9f7ff : sky ? 0xa9d8fb : 0x579c63);
+    if (threePondDecor) threePondDecor.visible = pond;
+    if (threeGrid) threeGrid.visible = !ocean && !sky && !polar && !pond;
+    if (threeGround) threeGround.material.color.setHex(ocean ? 0xbba76e : pond ? 0x2c6f73 : polar ? 0xe9f7ff : sky ? 0xa9d8fb : 0x579c63);
     if (threeScene && Three) {
-        const color = ocean ? 0x1d6f9d : polar ? 0xaed8ed : sky ? 0x72b8ed : 0x87b9e8;
+        const color = ocean ? 0x1d6f9d : pond ? 0x5fa8a8 : polar ? 0xaed8ed : sky ? 0x72b8ed : 0x87b9e8;
         threeScene.background = new Three.Color(color); threeScene.fog.color = new Three.Color(color);
     }
 }
@@ -890,7 +923,7 @@ function build3DMesh(entity, kind) {
     if (type === 'hedgehog') { for(let i=-3;i<=3;i++){ const spike=add(new Three.ConeGeometry(.11*size,.52*size,5),dark,i*.1*size,.77*size,.15*size); spike.rotation.z=i*.16; } }
     if (type === 'monkey') { add(new Three.SphereGeometry(.13,8,6),material,-.3*size,.78*size,0); add(new Three.SphereGeometry(.13,8,6),material,.3*size,.78*size,0); const tail=add(new Three.TorusGeometry(.28*size,.045*size,6,10,Math.PI),material,0,.42*size,.55*size); tail.rotation.x=Math.PI/2; }
     if (type === 'otter' || type === 'axolotl') { const tail=add(new Three.ConeGeometry(.18*size,.65*size,5),material,0,.36*size,.65*size); tail.rotation.x=Math.PI/2; if(type==='axolotl') [-.38,.38].forEach(x=>add(new Three.ConeGeometry(.08*size,.28*size,4),new Three.MeshStandardMaterial({color:0xff6fae}),x*size,.75*size,0)); }
-    if (['eagle','owl','crane','phoenix','falcon','albatross','hummingbird','swan','condor','pelican','flamingo','raven','pigeon','goose','cockatoo','kitebird'].includes(type)) { wing(-.48); wing(.48); add(new Three.ConeGeometry(.11*size,.35*size,4), type==='phoenix' ? new Three.MeshStandardMaterial({color:0xff5b2e,emissive:0x551100}) : new Three.MeshStandardMaterial({color:0xffcc4a}), 0,.62*size,-.44*size).rotation.x=-Math.PI/2; }
+    if (['eagle','owl','snowOwl','crane','phoenix','falcon','albatross','hummingbird','swan','condor','pelican','flamingo','raven','pigeon','goose','cockatoo','kitebird'].includes(type)) { wing(-.48); wing(.48); add(new Three.ConeGeometry(.11*size,.35*size,4), type==='phoenix' ? new Three.MeshStandardMaterial({color:0xff5b2e,emissive:0x551100}) : new Three.MeshStandardMaterial({color:0xffcc4a}), 0,.62*size,-.44*size).rotation.x=-Math.PI/2; }
     if (type === 'flamingo') {
         // 火烈鸟是涉水地面鸟：长腿行走，不会漂浮在天空场景。
         legs.forEach(leg => group.remove(leg)); legs.length = 0;
@@ -914,7 +947,7 @@ function build3DMesh(entity, kind) {
         group.userData.playerMarker = marker;
     }
     if (entity.isBoss) { const crown = add(new Three.ConeGeometry(.38 * size, .55 * size, 5), new Three.MeshStandardMaterial({ color: 0xffd54a, emissive: 0x775500 }), 0, 1.65 * size, 0); crown.rotation.y = Math.PI / 5; }
-    group.userData.flying = ['eagle', 'owl', 'crane', 'phoenix', 'bat', 'parrot', 'falcon', 'albatross', 'hummingbird', 'swan', 'condor', 'pelican', 'raven', 'pigeon', 'goose', 'cockatoo', 'kitebird'].includes(type);
+    group.userData.flying = ['eagle', 'owl', 'snowOwl', 'crane', 'phoenix', 'bat', 'parrot', 'falcon', 'albatross', 'hummingbird', 'swan', 'condor', 'pelican', 'raven', 'pigeon', 'goose', 'cockatoo', 'kitebird'].includes(type);
     group.userData.wings = group.children.filter(child => child.geometry && child.geometry.type === 'ConeGeometry' && Math.abs(child.rotation.z) > 1);
     group.userData.legs = legs;
     group.userData.body = head;
@@ -1008,6 +1041,7 @@ function renderEnemyLabels() {
         label.className = `enemy-label${enemy.isBoss ? ' boss' : ''}`;
         label.style.left = `${(point.x * .5 + .5) * 100}%`;
         label.style.top = `${(-point.y * .5 + .5) * 100}%`;
+        if (gameState.environment === 'polar') label.style.color = '#101820';
         const percent = Math.max(0, Math.min(100, enemy.hp / enemy.maxHp * 100));
         label.innerHTML = `<span>${enemy.isBoss ? '👑 ' : ''}Lv.${enemy.level} ${enemy.name}${enemy.lastActionText && enemy.attackFlash > 0 ? ` · ${enemy.lastActionText}` : ''}</span><div class="enemy-hp"><i style="width:${percent}%"></i></div>`;
         threeLabels.appendChild(label);
@@ -1032,11 +1066,11 @@ function renderEnemyLabels() {
         const point = new Three.Vector3(pos.x, 1.35, pos.z).project(threeCamera);
         if (point.z < -1 || point.z > 1) return;
         const label = document.createElement('div');
-        label.className = `damage-number${number.critical ? ' critical' : ''}`;
+        label.className = `damage-number${number.critical ? ' critical' : ''}${number.source === 'enemy' ? ' enemy-hit' : ''}`;
         label.style.left = `${(point.x * .5 + .5) * 100}%`;
         label.style.top = `${(-point.y * .5 + .5) * 100}%`;
         label.style.opacity = Math.max(0, number.life / number.maxLife);
-        label.textContent = `${number.critical ? '暴击! ' : ''}${number.source ? `${number.source} ` : ''}-${number.amount}`;
+        label.textContent = `-${number.amount}`;
         threeLabels.appendChild(label);
     });
 }
@@ -1076,6 +1110,9 @@ class Character {
         this.regenBonus = 0;
         this.regenProgress = 0;
         this.critChance = 0;
+        this.comboChance = 0;
+        this.reflectHits = 0;
+        this.reflectRatio = 0;
         this.lifesteal = 0;
         this.skillPower = 0;
         this.activeCooldownReduction = 0;
@@ -1115,7 +1152,8 @@ class Character {
             if (typeof bonus.speed === 'number') this.speed += bonus.speed;
             if (typeof bonus.hp === 'number') { this.maxHp += bonus.hp; this.hp = this.maxHp; gameState.lastUpgradeNotice = `生命上限 +${bonus.hp}，当前 ${this.maxHp} HP`; }
             if (typeof bonus.regen === 'number') this.regenBonus += bonus.regen;
-            if (typeof bonus.crit === 'number') this.critChance += bonus.crit;
+            if (typeof bonus.crit === 'number') this.critChance = Math.min(1, this.critChance + bonus.crit);
+            if (typeof bonus.combo === 'number') this.comboChance = Math.min(.85, this.comboChance + bonus.combo);
             if (typeof bonus.lifesteal === 'number') this.lifesteal += bonus.lifesteal;
             if (typeof bonus.skillPower === 'number') this.skillPower += bonus.skillPower;
             if (typeof bonus.cooldown === 'number') this.activeCooldownReduction = Math.min(.7, this.activeCooldownReduction + bonus.cooldown);
@@ -1157,6 +1195,14 @@ class Character {
             this.shieldHits = active.hits;
             this.shieldReduction = active.reduction;
         }
+        if (active.effect === 'reflect') { this.reflectHits = active.hits || 4; this.reflectRatio = active.ratio || .5; }
+        if (active.effect === 'ink') {
+            this.speedBoostTicks = 180;
+            gameState.enemies.forEach(enemy => { if (Math.hypot(enemy.x - this.x, enemy.y - this.y) < 250) enemy.slowTicks = 180; });
+        }
+        if (active.effect === 'poison') {
+            gameState.enemies.forEach(enemy => { if (Math.hypot(enemy.x - this.x, enemy.y - this.y) < 230) { enemy.poisonTicks = 240; enemy.poisonSource = this; } });
+        }
 
         spawnSkillEffect(this, active);
         this.activeCooldown = active.cooldown * (1 - this.activeCooldownReduction) * TARGET_FPS;
@@ -1170,13 +1216,19 @@ class Character {
         return true;
     }
 
-    takeDamage(damage) {
+    takeDamage(damage, source = null) {
         let actualDamage = Math.max(1, damage - Math.floor(this.defense / 2));
         if (this.shieldHits > 0) {
             actualDamage = Math.max(1, Math.ceil(actualDamage * (1 - this.shieldReduction)));
             this.shieldHits--;
         }
         this.hp -= actualDamage;
+        if (source && this.reflectHits > 0 && source.hp > 0) {
+            this.reflectHits--;
+            const reflected = Math.max(1, Math.ceil(actualDamage * this.reflectRatio));
+            source.hp -= reflected;
+            spawnDamageNumber(source, reflected, false, 'player');
+        }
         return actualDamage;
     }
 
@@ -1211,6 +1263,8 @@ class Character {
         if (this.attackFlash > 0) this.attackFlash = Math.max(0, this.attackFlash - frameScale);
         if (this.bossSkillCooldown > 0) this.bossSkillCooldown = Math.max(0, this.bossSkillCooldown - frameScale);
         if (this.activeCooldown > 0) this.activeCooldown = Math.max(0, this.activeCooldown - frameScale);
+        if (this.speedBoostTicks > 0) this.speedBoostTicks = Math.max(0, this.speedBoostTicks - frameScale);
+        if (this.slowTicks > 0) this.slowTicks = Math.max(0, this.slowTicks - frameScale);
     }
 
     draw(ctx) {
@@ -1259,8 +1313,13 @@ class Enemy extends Character {
         } else {
             this.changeDirectionTimer -= frameScale;
             if (this.changeDirectionTimer <= 0) {
-                this.targetX = Math.random() * GAME_WIDTH;
-                this.targetY = Math.random() * GAME_HEIGHT;
+                let targetX, targetY;
+                for (let tries = 0; tries < 12; tries++) {
+                    targetX = Math.random() * GAME_WIDTH; targetY = Math.random() * GAME_HEIGHT;
+                    if (gameState.environment !== 'land' || !(gameState.obstacles || []).some(obstacle => Math.hypot(targetX - obstacle.x, targetY - obstacle.y) < obstacle.radius + 65)) break;
+                }
+                this.targetX = targetX;
+                this.targetY = targetY;
                 this.changeDirectionTimer = Math.random() * 100 + 50;
             }
         }
@@ -1273,7 +1332,7 @@ class Enemy extends Character {
         const stopDistance = this.isBoss && gameState.player ? this.radius + gameState.player.radius - 3 : 5;
         if (distance > stopDistance) {
             // Boss 略快于普通敌人，避免玩家只要绕圈就永远不会被追上。
-            const speed = this.speed * (this.isBoss ? 0.42 : 0.3);
+            const speed = this.speed * (this.isBoss ? 0.42 : 0.3) * (this.slowTicks > 0 ? .45 : 1);
             this.vx = (dx / distance) * speed;
             this.vy = (dy / distance) * speed;
         } else {
@@ -1315,7 +1374,7 @@ class Particle {
     }
 
     update(frameScale = 1, player = null) {
-        // 只有击杀掉落会自动飞向玩家；宝箱与地图上的物品仍需主动靠近。
+        // 击杀和宝箱奖励会自动追踪玩家当前位置；地图经验点仍需主动靠近。
         if (this.pickupDelay > 0) {
             this.pickupDelay = Math.max(0, this.pickupDelay - frameScale);
         } else if (this.autoCollect && player) {
@@ -1541,8 +1600,16 @@ function attackOnce(attacker, defender) {
         attacker.bossRoar = true;
         attacker.lastActionText = attacker.bossSkillName || '王者猛击';
     } else attacker.bossRoar = false;
-    const actualDamage = defender.takeDamage(damage);
-    spawnDamageNumber(defender, actualDamage, attacker.lastCritical, canUseBossSkill ? 'BOSS!' : '');
+    const source = attacker === gameState.player ? 'player' : 'enemy';
+    const actualDamage = defender.takeDamage(damage, attacker);
+    spawnDamageNumber(defender, actualDamage, attacker.lastCritical, source);
+    let comboHits = 0;
+    while (attacker.hp > 0 && defender.hp > 0 && Math.random() < Math.min(.85, attacker.comboChance || 0) && comboHits < 5) {
+        comboHits++;
+        const comboDamage = rollBattleDamage(attacker);
+        const comboActual = defender.takeDamage(comboDamage, attacker);
+        spawnDamageNumber(defender, comboActual, attacker.lastCritical, source);
+    }
     if (attacker.lifesteal > 0) attacker.hp = Math.min(attacker.maxHp, attacker.hp + Math.ceil(damage * attacker.lifesteal));
     attacker.cooldown = Math.max(18, 42 - attacker.speed * 2);
     attacker.attackFlash = canUseBossSkill ? 18 : 10;
@@ -1554,7 +1621,8 @@ function spawnAmbientPickups(count = 32) {
     for (let i = 0; i < count; i++) {
         let x = 40 + Math.random() * (GAME_WIDTH - 80);
         let y = 40 + Math.random() * (GAME_HEIGHT - 80);
-        if (Math.hypot(x - gameState.player.x, y - gameState.player.y) < 110) { i--; continue; }
+        const blocked = gameState.environment === 'land' && (gameState.obstacles || []).some(obstacle => Math.hypot(x - obstacle.x, y - obstacle.y) < obstacle.radius + 46);
+        if (Math.hypot(x - gameState.player.x, y - gameState.player.y) < 110 || blocked) { i--; continue; }
         const type = 'exp';
         const particle = new Particle(x, y, type, 1 + Math.floor(Math.random() * 3));
         particle.vx = 0; particle.vy = 0; particle.pickupDelay = 0; particle.life = 999999; particle.maxLife = 999999; particle.isAmbient = true;
@@ -1583,6 +1651,7 @@ function spawnChestRewards(x, y) {
         particle.vy = 0;
         particle.pickupDelay = 16;
         particle.chestReward = true;
+        particle.autoCollect = true;
         particle.life = 900;
         particle.maxLife = 900;
         gameState.particles.push(particle);
@@ -1650,21 +1719,21 @@ function init() {
     rebalancePendingPolarRewards();
     grantEligiblePolarRewards();
     gameState.screen = 'hall';
-    showHall();
-    // 首次进入不再弹出大厅说明，而是直接进入一局可操作的新手实战。
     if (!localStorage.getItem('tutorialComplete')) {
         const useMobile = window.confirm('新手教程：你使用手机玩吗？\n确定：手机摇杆\n取消：电脑键盘');
         setControlMode(useMobile ? 'mobile' : 'desktop');
         startTutorialBattle();
+        return;
     }
+    showHall();
 }
 
 const TUTORIAL_STEPS = [
     '这是新手实战：按 WASD 或方向键，让小猫先走起来。',
     '跟着箭头吃掉这个经验点：会获得经验并回复 1 点生命。',
-    '靠近宝箱打开它。奖励会落在宝箱周围，记得亲自拾取。',
+    '靠近宝箱打开它。奖励会先围在宝箱旁，再自动飞进你身上。',
     '点击左上角的主动技能按钮，试试小猫的成长呼噜。',
-    '最后靠近小兔子并击败它。碰到敌人会自动攻击；脱战 5 秒会自动回血。进入排位或爬塔后，右侧“找死·全员来战”会让所有敌人主动找你；再按一次即可取消。'
+    '最后靠近小兔子并击败它。碰到敌人会自动攻击；脱战 5 秒会自动回血。你造成的伤害是黑色，暴击是红色；敌人造成的伤害是黄色。进入排位或爬塔后，右侧“找死·全员来战”会让所有敌人主动找你；再按一次即可取消。'
 ];
 
 function setTutorialStep(step) {
@@ -1965,7 +2034,12 @@ function openAccountPanel(kind) {
     const cards = (items) => `<div class="animals-grid">${items}</div>`;
     if (kind === 'hero') {
         title.textContent = '🦸 英雄图鉴';
-        content.innerHTML = cards(heroesByPower().map(([key, h]) => `<div class="animal-card" style="opacity:${h.unlocked ? 1 : .55}"><div class="animal-emoji">${heroIconMarkup(key, h)}</div><div>${heroRarityMarkup(h)}</div><div class="animal-name">${h.name}</div><div class="animal-stats">战力 ${calculateHeroPower(h)}<br>${h.unlocked ? '已解锁' : h.rewardOnly ? '极地奖励专属' : h.signOnly ? '签到专属' : `售价 ${h.price} 金币`}</div></div>`).join(''));
+        content.innerHTML = cards(heroesByPower().map(([key, h]) => `<div class="animal-card" style="opacity:${h.unlocked ? 1 : .55}"><div class="animal-emoji">${heroIconMarkup(key, h)}</div><div>${heroRarityMarkup(h)}</div><div class="animal-name">${h.name}</div><div class="animal-stats">战力 ${calculateHeroPower(h)}<br>${h.unlocked ? '已解锁' : h.rewardOnly ? '极地奖励专属：英雄之路查看段位 / 等级条件' : h.signOnly ? '签到专属' : `售价 ${h.price} 金币`}</div></div>`).join(''));
+    } else if (kind === 'road') {
+        title.textContent = '🧭 英雄之路';
+        const rankRoad = RANK_TIERS.slice(1).map((tier, index) => `<div class="skill-card"><div class="skill-name">${gameState.rank.tier >= index + 1 ? '✅' : '🔒'} 晋升 ${tier}</div><div class="skill-desc">奖励：${ANIMALS[POLAR_REWARD_ORDER[index]].emoji} ${ANIMALS[POLAR_REWARD_ORDER[index]].name}（按极地奖励顺序发放）</div></div>`).join('');
+        const levelRoad = [5,10,15,20,25,30].map((level, index) => `<div class="skill-card"><div class="skill-name">${gameState.account.level >= level ? '✅' : '🔒'} 账号 Lv.${level}</div><div class="skill-desc">奖励：北极英雄邮件。当前账号等级：Lv.${gameState.account.level}</div></div>`).join('');
+        content.innerHTML = `<div style="display:flex;gap:10px;margin-bottom:14px"><button class="btn btn-primary" type="button" onclick="switchHeroRoad('rank')">🏆 段位奖励</button><button class="btn" type="button" onclick="switchHeroRoad('level')">📊 等级奖励</button></div><div id="heroRoadRank"><h3>🏆 段位奖励</h3>${rankRoad}</div><div id="heroRoadLevel" style="display:none"><h3>📊 等级奖励</h3>${levelRoad}</div>`;
     } else if (kind === 'bag') {
         title.textContent = '🎒 背包';
         content.innerHTML = cards(`<div class="animal-card"><div class="animal-emoji">🪙</div><div class="animal-name">金币</div><div class="animal-stats">${gameState.stats.coins}</div></div><div class="animal-card"><div class="animal-emoji">🪪</div><div class="animal-name">改名卡</div><div class="animal-stats">数量 ×${gameState.account.inventory.renameCard || 0}</div><button class="btn btn-success" type="button" ${gameState.account.inventory.renameCard ? '' : 'disabled'} onclick="useRenameCard()">使用改名卡</button></div>`);
@@ -1984,6 +2058,14 @@ function openAccountPanel(kind) {
     }
     document.getElementById('hallModal').classList.add('hidden');
     document.getElementById('subPageModal').classList.remove('hidden');
+}
+
+function switchHeroRoad(tab) {
+    const rank = document.getElementById('heroRoadRank');
+    const level = document.getElementById('heroRoadLevel');
+    if (!rank || !level) return;
+    rank.style.display = tab === 'rank' ? '' : 'none';
+    level.style.display = tab === 'level' ? '' : 'none';
 }
 
 function claimDailySignIn() {
@@ -2109,8 +2191,10 @@ function startGame(animalType, savedRun = null) {
     if (gameState.mode === 'tutorial' && gameState.environment === 'land') placeTutorialPlayerSafely(gameState.player);
     if (savedRun && ['ranked','tower'].includes(gameState.mode)) {
         const savedPlayer = savedRun.player;
-        const fields = ['x','y','level','exp','expToLevel','attack','defense','speed','maxHp','hp','skills','regenBonus','critChance','lifesteal','skillPower','activeCooldownReduction','activeCooldown','empoweredHits','empoweredDamage','shieldHits','shieldReduction'];
+        const fields = ['x','y','level','exp','expToLevel','attack','defense','speed','maxHp','hp','skills','regenBonus','critChance','comboChance','lifesteal','skillPower','activeCooldownReduction','activeCooldown','empoweredHits','empoweredDamage','shieldHits','shieldReduction'];
         fields.forEach(field => { if (savedPlayer[field] !== undefined) gameState.player[field] = savedPlayer[field]; });
+        gameState.player.critChance = Math.min(1, Math.max(0, gameState.player.critChance || 0));
+        gameState.player.comboChance = Math.min(.85, Math.max(0, gameState.player.comboChance || 0));
         gameState.world.level = Math.max(1, savedRun.level || 1);
         gameState.world.time = Math.max(0, savedRun.time || 0);
         gameState.stats.killCount = Math.max(0, savedRun.killCount || 0);
@@ -2148,7 +2232,7 @@ function spawnEnemies() {
         // 敌人可以是任何角色，不受解锁限制
         const bronzePool = ['cat', 'rabbit', 'fox', 'bear'];
         const midPool = [...bronzePool, 'tiger', 'wolf', 'deer', 'panda', 'monkey'];
-        const environmentPool = gameState.environment === 'ocean' ? OCEAN_TYPES : gameState.environment === 'sky' ? SKY_TYPES : gameState.environment === 'polar' ? POLAR_TYPES : null;
+        const environmentPool = gameState.environment === 'ocean' ? OCEAN_TYPES : gameState.environment === 'sky' ? SKY_TYPES : gameState.environment === 'polar' ? POLAR_TYPES : gameState.environment === 'pond' ? POND_TYPES : null;
         const enemyPool = environmentPool
             ? environmentPool
             : gameState.mode === 'ranked'
@@ -2295,7 +2379,11 @@ function finishRankedMatch(won, rankRewardOverride = null) {
     exitGameFullscreen();
     if (gameState.mode === 'ranked') clearRankedRun();
     if (gameState.mode === 'ranked' && won) { gameState.stats.rankWins++; localStorage.setItem('rankWins', gameState.stats.rankWins); }
-    accountExp(won ? 45 : 20);
+    // 团队模式是轻量娱乐局；排位经验随抵达层数显著提高。
+    const accountReward = gameState.mode === 'team'
+        ? (won ? 12 : 5)
+        : (won ? 45 + gameState.world.level * 14 : 12 + gameState.world.level * 4);
+    accountExp(accountReward);
     let rankReward = 0;
     if (gameState.mode === 'ranked') {
         const floor = gameState.world.level;
@@ -2387,18 +2475,18 @@ function updateBossSkills() {
         const distance = Math.hypot(boss.x - player.x, boss.y - player.y);
         if (distance > 230) continue;
         const damage = Math.ceil(boss.attack * 2.25 + 8);
-        const actualDamage = player.takeDamage(damage);
+        const actualDamage = player.takeDamage(damage, boss);
         boss.bossSkillCooldown = 7 * TARGET_FPS;
         boss.bossRoar = true;
         boss.lastActionText = boss.bossSkillName || '王者猛击';
         boss.attackFlash = 42;
         player.lastCombatTime = gameState.world.time;
-        spawnDamageNumber(player, actualDamage, false, 'BOSS!');
+        spawnDamageNumber(player, actualDamage, false, 'enemy');
         // 咆哮会在 Boss 脚下释放一圈持续扩散的红色冲击波。
         const roar = new SkillEffect(boss, { name: boss.lastActionText, effect: 'roar' });
-        roar.radius = 118;
-        roar.life = 42;
-        roar.color = '#ff513d';
+        roar.radius = 154;
+        roar.life = 58;
+        roar.color = '#ff241d';
         gameState.skillEffects.push(roar);
     }
 }
@@ -2635,7 +2723,7 @@ window.addEventListener('keyup', (e) => {
 // 移动控制
 function handleInput() {
     // 速度同时决定移动速度和攻击间隔：每 1 点速度约增加 0.24 像素/帧移动。
-    const speed = 2.1 + gameState.player.speed * 0.24;
+    const speed = (2.1 + gameState.player.speed * 0.24) * (gameState.player.speedBoostTicks > 0 ? 1.45 : 1);
     gameState.player.vx = 0;
     gameState.player.vy = 0;
 
@@ -2700,10 +2788,10 @@ function render() {
             ctx.globalAlpha = Math.max(0, number.life / number.maxLife);
             ctx.font = `900 ${number.critical ? 28 : 20}px Arial`;
             ctx.textAlign = 'center';
-            ctx.fillStyle = number.critical ? '#ffe14d' : '#fff';
-            ctx.strokeStyle = number.critical ? '#8b2500' : '#111';
-            ctx.lineWidth = 4;
-            const text = `${number.critical ? '暴击! ' : ''}${number.source ? `${number.source} ` : ''}-${number.amount}`;
+            ctx.fillStyle = number.critical ? '#e53935' : number.source === 'enemy' ? '#ffcc39' : '#111';
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 3;
+            const text = `-${number.amount}`;
             ctx.strokeText(text, number.x, number.y);
             ctx.fillText(text, number.x, number.y);
             ctx.restore();
@@ -2725,7 +2813,8 @@ function updateUI() {
     document.getElementById('playerAttack').textContent = visibleAttack;
     document.getElementById('playerDefense').textContent = player.defense;
     document.getElementById('playerSpeed').textContent = `${player.speed}（移动 ${Math.round((2.1 + player.speed * .24) * 10) / 10} / 攻速）`;
-    document.getElementById('playerCritChance').textContent = `${Math.round(player.critChance * 100)}%`;
+    document.getElementById('playerCritChance').textContent = `${Math.round(Math.min(1, player.critChance) * 100)}%`;
+    document.getElementById('playerComboChance').textContent = `${Math.round(Math.min(.85, player.comboChance || 0) * 100)}%`;
     document.getElementById('playerLevel').textContent = player.level;
 
     // 专属能力
@@ -2738,6 +2827,7 @@ function updateUI() {
         : `${skillIcon} ${player.activeAbility.name}（${controlMode === 'mobile' ? '点击' : '空格'}）`;
     activeButton.title = player.activeAbility.desc;
     activeButton.disabled = player.activeCooldown > 0;
+    activeButton.classList.toggle('polar-skill', gameState.environment === 'polar');
 
     const provokeButton = document.getElementById('provokeButton');
     const canProvoke = ['ranked', 'tower'].includes(gameState.mode) && gameState.screen === 'playing';
@@ -2801,6 +2891,17 @@ function gameLoop(timestamp = performance.now()) {
         updateTeamTargets();
         gameState.allies.forEach(ally => ally.update(frameScale));
         gameState.enemies.forEach(enemy => enemy.update(frameScale));
+        for (const enemy of [...gameState.enemies]) {
+            if (enemy.poisonTicks <= 0) continue;
+            enemy.poisonTicks = Math.max(0, enemy.poisonTicks - frameScale);
+            enemy.poisonProgress = (enemy.poisonProgress || 0) + frameScale;
+            if (enemy.poisonProgress >= TARGET_FPS) {
+                enemy.poisonProgress -= TARGET_FPS;
+                const poisonDamage = enemy.takeDamage(4, enemy.poisonSource || gameState.player);
+                spawnDamageNumber(enemy, poisonDamage, false, 'player');
+                if (enemy.hp <= 0) defeatEnemyBySkill(enemy);
+            }
+        }
         updateBossSkills();
         if (gameState.mode !== 'team' && gameState.player.hp <= 0) {
             endGame();

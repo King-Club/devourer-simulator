@@ -104,8 +104,7 @@ const ANIMALS = {
     elephant: { name: '小象', emoji: '🐘', baseAttack: 8, baseDefense: 8, baseSpeed: 2, baseHp: 65, color: '#778899', unlocked: false, unlockThreshold: 70 },
     hedgehog: { name: '刺猬', emoji: '🦔', baseAttack: 6, baseDefense: 6, baseSpeed: 5, baseHp: 44, color: '#8B4513', unlocked: false, unlockThreshold: 80 },
     crane: { name: '仙鹤', emoji: '🦢', baseAttack: 5, baseDefense: 3, baseSpeed: 10, baseHp: 35, color: '#E6E6FA', unlocked: false, unlockThreshold: 90 },
-    giraffe: { name: '长颈鹿', emoji: '🦒', baseAttack: 7, baseDefense: 4, baseSpeed: 6, baseHp: 48, color: '#DAA520', unlocked: false, unlockThreshold: 100 },
-    axolotl: { name: '六角恐龙', emoji: '🦎', baseAttack: 5, baseDefense: 5, baseSpeed: 7, baseHp: 46, color: '#FF69B4', unlocked: false, unlockThreshold: 110 }
+    giraffe: { name: '长颈鹿', emoji: '🦒', baseAttack: 7, baseDefense: 4, baseSpeed: 6, baseHp: 48, color: '#DAA520', unlocked: false, unlockThreshold: 100 }
 };
 
 ANIMALS.fox.signOnly = true;
@@ -156,8 +155,7 @@ const ABILITIES = {
     elephant: { passive: { name: '厚重', desc: '防御 +1', bonus: { defense: 1 } }, active: { name: '象牙壁垒', desc: '接下来 3 次受击减伤 50%', effect: 'shield', hits: 3, reduction: 0.5, cooldown: 13 } },
     hedgehog: { passive: { name: '尖刺', desc: '防御 +1', bonus: { defense: 1 } }, active: { name: '蜷缩', desc: '接下来 3 次受击减伤 55%', effect: 'shield', hits: 3, reduction: 0.55, cooldown: 12 } },
     crane: { passive: { name: '凌空', desc: '速度 +1', bonus: { speed: 1 } }, active: { name: '振翅', desc: '朝面向冲刺 190 像素', effect: 'dash', distance: 190, cooldown: 9 } },
-    giraffe: { passive: { name: '长颈', desc: '最大生命 +5', bonus: { hp: 5 } }, active: { name: '长颈突击', desc: '下 2 次攻击额外 +7 伤害', effect: 'empower', bonus: 7, hits: 2, cooldown: 10 } },
-    axolotl: { passive: { name: '再生', desc: '最大生命 +5', bonus: { hp: 5 } }, active: { name: '水愈', desc: '回复 35% 最大生命', effect: 'heal', amount: 0.35, cooldown: 12 } }
+    giraffe: { passive: { name: '长颈', desc: '最大生命 +5', bonus: { hp: 5 } }, active: { name: '长颈突击', desc: '下 2 次攻击额外 +7 伤害', effect: 'empower', bonus: 7, hits: 2, cooldown: 10 } }
 };
 
 // 第二批英雄：全部沿用“被动 + 主动”的平衡模板。它们会自动出现在图鉴、选人页、商城和敌人池中。
@@ -247,7 +245,7 @@ const POLAR_HERO_KEYS=['polarBear','arcticFox','penguin','walrus','snowOwl','mus
 // 极地奖励按强度逐步发放：先史诗，再神话，最后才是传说。
 const POLAR_REWARD_ORDER=['penguin','snowOwl','reindeer','arcticWolf','narwhal','emperorPenguin','polarBear','walrus','muskOx','arcticFox','arcticHare','puffin'];
 // 两条奖励路线都从史诗开始，再升到神话和传说，避免新玩家一开始就跳到传说英雄。
-const POLAR_RANK_REWARDS=['penguin','arcticFox','arcticHare','arcticWolf','narwhal','polarBear'];
+const POLAR_RANK_REWARDS=['penguin','emperorPenguin','arcticHare','arcticWolf','narwhal','polarBear'];
 const POLAR_LEVEL_REWARDS=['snowOwl','reindeer','puffin','emperorPenguin','muskOx','walrus'];
 POLAR_HERO_KEYS.forEach(key => { ANIMALS[key].rewardOnly = true; });
 ['seal','whale','orca','octopus','jellyfish','falcon','albatross','hummingbird','swan','condor','pelican','flamingo','raven','pigeon','goose','cockatoo','kitebird','polarBear','arcticFox','penguin','walrus','snowOwl','muskOx','arcticHare','arcticWolf','puffin','narwhal','emperorPenguin','reindeer'].forEach(type => {
@@ -294,7 +292,7 @@ const OCEAN_TYPES=['dolphin','shark','seal','whale','orca','octopus','jellyfish'
 const SKY_TYPES=['eagle','owl','crane','phoenix','bat','parrot','falcon','albatross','hummingbird','swan','condor','pelican','raven','pigeon','goose','cockatoo','kitebird'];
 // 雪狼本身是极地动物，也应和北极英雄一起进入极地场景与敌人池。
 const POLAR_TYPES=[...POLAR_HERO_KEYS,'wolf'];
-const POND_TYPES=['crocodile','axolotl','otter','hippo','flamingo','turtle','elephant'];
+const POND_TYPES=['crocodile','otter','hippo','flamingo','turtle','elephant'];
 const SAVANNA_TYPES=['lion','africanElephant','giraffe','zebra','rhino'];
 const LAND_TYPES=Object.keys(ANIMALS).filter(type => !OCEAN_TYPES.includes(type) && !SKY_TYPES.includes(type) && !POLAR_TYPES.includes(type) && !POND_TYPES.includes(type) && !SAVANNA_TYPES.includes(type));
 function environmentFor(type){ return OCEAN_TYPES.includes(type)?'ocean':SKY_TYPES.includes(type)?'sky':POLAR_TYPES.includes(type)?'polar':POND_TYPES.includes(type)?'pond':SAVANNA_TYPES.includes(type)?'savanna':'land'; }
@@ -309,6 +307,7 @@ function calculateHeroPower(hero) {
 }
 const HERO_RARITY_INFO = { normal:'普通', rare:'稀有', epic:'史诗', mythic:'神话', legendary:'传说' };
 function heroRarity(hero) {
+    if (hero.rarityOverride) return hero.rarityOverride;
     const power = calculateHeroPower(hero);
     if (power >= 330) return 'legendary';
     if (power >= 300) return 'mythic';
@@ -316,6 +315,8 @@ function heroRarity(hero) {
     if (power >= 215) return 'rare';
     return 'normal';
 }
+ANIMALS.hedgehog.rarityOverride = 'epic';
+ANIMALS.northeastTiger.rarityOverride = 'legendary';
 function heroRarityMarkup(hero) {
     const rarity = heroRarity(hero);
     return `<span class="hero-rarity hero-rarity-${rarity}">${HERO_RARITY_INFO[rarity]}</span>`;
@@ -333,6 +334,30 @@ function heroIconMarkup(key, hero) {
     if (raptorIcons[key]) return `<span class="bird-icon bird-icon-${raptorIcons[key]}" role="img" aria-label="${hero.name}"><i></i><b></b><b></b><em></em></span>`;
     return hero.emoji;
 }
+
+// 皮肤不会改变面板数值，只改变进入对局后的配色；拥有英雄后即可在“英雄”页选择。
+const HERO_SKINS = {
+    cat:[{id:'default',name:'粉爪小猫',color:'#FFB6C1'},{id:'midnight',name:'月影小猫',color:'#39445a'},{id:'cream',name:'奶油小猫',color:'#f4d9a6'}],
+    lion:[{id:'default',name:'草原雄狮',color:'#d99132'},{id:'sunset',name:'落日雄狮',color:'#c56a2f'}],
+    tiger:[{id:'default',name:'橙纹猛虎',color:'#FF8C00'},{id:'white',name:'白纹猛虎',color:'#e7edf2'}],
+    northeastTiger:[{id:'default',name:'东北虎',color:'#d98224'},{id:'snow',name:'雪林虎王',color:'#eef1ee'}],
+    shark:[{id:'default',name:'深海灰鲨',color:'#63869b'},{id:'abyss',name:'深渊蓝鲨',color:'#274e72'}],
+    flamingo:[{id:'default',name:'粉羽火烈鸟',color:'#ef7fa8'},{id:'coral',name:'珊瑚火烈鸟',color:'#ff6f79'}]
+};
+function getSelectedHeroSkin(type) {
+    const skins = HERO_SKINS[type];
+    if (!skins) return null;
+    const saved = localStorage.getItem(`heroSkin:${type}`) || 'default';
+    return skins.find(skin => skin.id === saved) || skins[0];
+}
+function selectHeroSkin(type, skinId) {
+    if (!ANIMALS[type]?.unlocked) return window.alert('请先解锁该英雄。');
+    const skin = HERO_SKINS[type]?.find(item => item.id === skinId);
+    if (!skin) return;
+    localStorage.setItem(`heroSkin:${type}`, skin.id);
+    openAccountPanel('hero');
+}
+window.selectHeroSkin = selectHeroSkin;
 function refreshHeroPrices() {
     Object.values(ANIMALS).forEach(hero => {
         if (!hero.signOnly) hero.price = calculateHeroPrice(hero);
@@ -436,9 +461,17 @@ let pendingSaveMode = null;
 
 function spawnDamageNumber(target, amount, critical = false, source = '', combo = false) {
     if (!target || !Number.isFinite(amount)) return;
+    // 同一个目标短时间内受到多次伤害时，依次占用不同的位置，避免数字完全重叠。
+    const occupied = new Set(gameState.damageNumbers.filter(number => number.target === target && number.life > 0).map(number => number.slot));
+    let slot = 0;
+    while (occupied.has(slot) && slot < 14) slot++;
+    const column = (slot % 5) - 2;
+    const row = Math.floor(slot / 5);
     gameState.damageNumbers.push({
-        x: target.x + (Math.random() - .5) * 24,
-        y: target.y - target.radius - 8,
+        target,
+        slot,
+        x: target.x + column * 18,
+        y: target.y - target.radius - 8 - row * 20,
         amount: Math.max(0, Math.round(amount)),
         critical,
         source,
@@ -745,14 +778,20 @@ async function init3DRenderer() {
         threeScene.add(skyDecor);
         // 池塘场景：荷叶、芦苇、睡莲和波光，不产生碰撞。
         const pondDecor = new THREE.Group();
-        const waterMat = new THREE.MeshStandardMaterial({ color:0x4b9fb0, emissive:0x123b4a, emissiveIntensity:.18, roughness:.38, metalness:.1 });
-        const water = new THREE.Mesh(new THREE.CircleGeometry(8.2, 48), waterMat); water.rotation.x=-Math.PI/2; water.position.y=.025; pondDecor.add(water);
+        const bankMat = new THREE.MeshStandardMaterial({ color:0xb99a62, roughness:.95, flatShading:true });
+        const waterMat = new THREE.MeshStandardMaterial({ color:0x277f94, emissive:0x0b4558, emissiveIntensity:.32, roughness:.28, metalness:.18 });
+        const bank = new THREE.Mesh(new THREE.CircleGeometry(8.8, 48), bankMat); bank.rotation.x=-Math.PI/2; bank.position.y=.012; pondDecor.add(bank);
+        const water = new THREE.Mesh(new THREE.CircleGeometry(7.95, 48), waterMat); water.rotation.x=-Math.PI/2; water.position.y=.032; pondDecor.add(water);
+        [2.1,4.25,6.2].forEach((radius, index) => { const ripple=new THREE.Mesh(new THREE.TorusGeometry(radius,.018,5,48),new THREE.MeshBasicMaterial({color:0xa9ebee,transparent:true,opacity:.25-index*.05})); ripple.rotation.x=-Math.PI/2; ripple.position.y=.052; pondDecor.add(ripple); });
         const reedMat = new THREE.MeshStandardMaterial({ color:0x426d35, roughness:.85, flatShading:true });
         const lilyMat = new THREE.MeshStandardMaterial({ color:0x4f9d52, roughness:.7, flatShading:true });
+        const lilyFlowerMat = new THREE.MeshStandardMaterial({ color:0xffd3e9, emissive:0xa83c7b, emissiveIntensity:.22, roughness:.7, flatShading:true });
+        const pondRockMat = new THREE.MeshStandardMaterial({ color:0x68716b, roughness:.95, flatShading:true });
         for (let i=0;i<34;i++) {
             const angle=Math.random()*Math.PI*2, radius=2.5+Math.random()*5.2, x=Math.cos(angle)*radius, z=Math.sin(angle)*radius;
-            if (i%2===0) { const lily=new THREE.Mesh(new THREE.CircleGeometry(.16+Math.random()*.15,8),lilyMat); lily.rotation.x=-Math.PI/2; lily.position.set(x,.07,z); pondDecor.add(lily); }
-            else for(let blade=-1;blade<=1;blade++){ const reed=new THREE.Mesh(new THREE.CylinderGeometry(.018,.028,.55+Math.random()*.38,5),reedMat); reed.position.set(x+blade*.05,.35,z); reed.rotation.z=blade*.18; pondDecor.add(reed); }
+            if (i%3===0) { const lily=new THREE.Mesh(new THREE.CircleGeometry(.16+Math.random()*.15,8),lilyMat); lily.rotation.x=-Math.PI/2; lily.position.set(x,.07,z); pondDecor.add(lily); if(i%2===0){ const bloom=new THREE.Mesh(new THREE.SphereGeometry(.075,7,6),lilyFlowerMat); bloom.position.set(x,.14,z); pondDecor.add(bloom); } }
+            else if (i%3===1) for(let blade=-1;blade<=1;blade++){ const reed=new THREE.Mesh(new THREE.CylinderGeometry(.018,.028,.55+Math.random()*.38,5),reedMat); reed.position.set(x+blade*.05,.35,z); reed.rotation.z=blade*.18; pondDecor.add(reed); }
+            else { const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(.14+Math.random()*.16,0),pondRockMat); rock.position.set(x,.12,z); rock.scale.y=.55; pondDecor.add(rock); }
         }
         threePondDecor=pondDecor; threeScene.add(pondDecor);
         // 金色草原：金合欢树、干草簇和夕阳，所有景物仅作视觉装饰，不阻挡移动。
@@ -1052,7 +1091,7 @@ function build3DMesh(entity, kind) {
     if (type === 'boar') { [-.16,.16].forEach(x => { const tusk=add(new Three.ConeGeometry(.06*size,.34*size,5),light,x*size,.44*size,-.42*size); tusk.rotation.x=-1.3; }); }
     if (type === 'hedgehog') { for(let i=-3;i<=3;i++){ const spike=add(new Three.ConeGeometry(.11*size,.52*size,5),dark,i*.1*size,.77*size,.15*size); spike.rotation.z=i*.16; } }
     if (type === 'monkey') { add(new Three.SphereGeometry(.13,8,6),material,-.3*size,.78*size,0); add(new Three.SphereGeometry(.13,8,6),material,.3*size,.78*size,0); const tail=add(new Three.TorusGeometry(.28*size,.045*size,6,10,Math.PI),material,0,.42*size,.55*size); tail.rotation.x=Math.PI/2; }
-    if (type === 'otter' || type === 'axolotl') { const tail=add(new Three.ConeGeometry(.18*size,.65*size,5),material,0,.36*size,.65*size); tail.rotation.x=Math.PI/2; if(type==='axolotl') [-.38,.38].forEach(x=>add(new Three.ConeGeometry(.08*size,.28*size,4),new Three.MeshStandardMaterial({color:0xff6fae}),x*size,.75*size,0)); }
+    if (type === 'otter') { const tail=add(new Three.ConeGeometry(.18*size,.65*size,5),material,0,.36*size,.65*size); tail.rotation.x=Math.PI/2; }
     if (['eagle','owl','snowOwl','crane','phoenix','falcon','albatross','hummingbird','swan','condor','pelican','flamingo','raven','pigeon','goose','cockatoo','kitebird'].includes(type)) { wing(-.48); wing(.48); add(new Three.ConeGeometry(.11*size,.35*size,4), type==='phoenix' ? new Three.MeshStandardMaterial({color:0xff5b2e,emissive:0x551100}) : new Three.MeshStandardMaterial({color:0xffcc4a}), 0,.62*size,-.44*size).rotation.x=-Math.PI/2; }
     if (type === 'flamingo') {
         // 火烈鸟是涉水地面鸟：长腿行走，不会漂浮在天空场景。
@@ -1071,11 +1110,6 @@ function build3DMesh(entity, kind) {
     if (type === 'turtle') add(new Three.SphereGeometry(.42,10,7),new Three.MeshStandardMaterial({color:0x315f35,roughness:.8,flatShading:true}),0,.48*size,.23*size,1.15*size,.65*size,1.3*size);
     if (['bat','parrot'].includes(type)) { wing(-.48); wing(.48); }
     if (['shark','dolphin','crocodile'].includes(type)) { const fin=add(new Three.ConeGeometry(.16*size,.45*size,4),material,0,.78*size,.35*size); fin.rotation.x=-.2; }
-    if (kind === 'player') {
-        const marker = add(new Three.ConeGeometry(.22, .55, 4), new Three.MeshStandardMaterial({ color: 0xffe04b, emissive: 0x886000, emissiveIntensity: .8 }), 0, 1.65 * size, 0);
-        marker.rotation.x = Math.PI;
-        group.userData.playerMarker = marker;
-    }
     if (entity.isBoss) { const crown = add(new Three.ConeGeometry(.38 * size, .55 * size, 5), new Three.MeshStandardMaterial({ color: 0xffd54a, emissive: 0x775500 }), 0, 1.65 * size, 0); crown.rotation.y = Math.PI / 5; }
     group.userData.flying = ['eagle', 'owl', 'snowOwl', 'crane', 'phoenix', 'bat', 'parrot', 'falcon', 'albatross', 'hummingbird', 'swan', 'condor', 'pelican', 'raven', 'pigeon', 'goose', 'cockatoo', 'kitebird'].includes(type);
     group.userData.wings = group.children.filter(child => child.geometry && child.geometry.type === 'ConeGeometry' && Math.abs(child.rotation.z) > 1);
@@ -1119,7 +1153,6 @@ function render3D() {
         const flying = mesh.userData.flying;
         const moving = Math.hypot(entity.vx || 0, entity.vy || 0) > .05;
         mesh.position.set(pos.x, flying ? .8 + Math.sin(phase) * .12 : moving ? Math.abs(Math.sin(phase * 2)) * .09 : 0, pos.z);
-        if (mesh.userData.playerMarker) mesh.userData.playerMarker.position.y = 1.65 + Math.sin(phase * 2) * .08;
         // 地面英雄朝移动方向行走，不再原地持续旋转；掉落物保留旋转效果。
         if (kind === 'particle') mesh.rotation.y += 0.12;
         else if (Math.hypot(entity.vx || 0, entity.vy || 0) > 0.05) mesh.rotation.y = Math.atan2(entity.vx, entity.vy) + Math.PI;
@@ -1163,6 +1196,24 @@ function renderEnemyLabels() {
         aim.style.width=`${Math.hypot(x2-x1,y2-y1)}%`; aim.style.transform=`rotate(${Math.atan2(y2-y1,x2-x1)}rad)`;
         threeLabels.appendChild(aim);
     }
+    // 玩家箭头单独按玩家当前位置绘制，不再依附动物模型，因此不会跑到敌人身上或消失。
+    if (gameState.player) {
+        const pos = toWorld(gameState.player);
+        const point = new Three.Vector3(pos.x, 1.7, pos.z).project(threeCamera);
+        if (point.z >= -1 && point.z <= 1) {
+            const marker = document.createElement('div');
+            marker.className = 'player-focus-marker'; marker.textContent = '\u25bc';
+            marker.style.left = `${(point.x * .5 + .5) * 100}%`;
+            marker.style.top = `${(-point.y * .5 + .5) * 100}%`;
+            threeLabels.appendChild(marker);
+            const hp = document.createElement('div');
+            hp.className = 'player-world-hp';
+            hp.style.left = `${(point.x * .5 + .5) * 100}%`;
+            hp.style.top = `${(-point.y * .5 + .5) * 100 + 3}%`;
+            hp.innerHTML = `<span>${gameState.player.name} Lv.${gameState.player.level}</span><div><i style="width:${Math.max(0, Math.min(100, gameState.player.hp / gameState.player.maxHp * 100))}%"></i></div>`;
+            threeLabels.appendChild(hp);
+        }
+    }
     gameState.enemies.forEach(enemy => {
         const pos = toWorld(enemy);
         const point = new Three.Vector3(pos.x, enemy.isBoss ? 2.8 : 1.35, pos.z).project(threeCamera);
@@ -1196,7 +1247,7 @@ function renderEnemyLabels() {
         const point = new Three.Vector3(pos.x, 1.35, pos.z).project(threeCamera);
         if (point.z < -1 || point.z > 1) return;
         const label = document.createElement('div');
-        label.className = `damage-number${number.critical ? ' critical' : ''}${number.combo ? ' combo-hit' : ''}${number.source === 'enemy' ? ' enemy-hit' : ''}`;
+        label.className = `damage-number${number.critical ? ' critical' : ''}${number.combo ? ' combo-hit' : ''}${number.source === 'enemy' ? ' enemy-hit' : ''}${number.source === 'reflect' ? ' reflect-hit' : ''}`;
         label.style.left = `${(point.x * .5 + .5) * 100}%`;
         label.style.top = `${(-point.y * .5 + .5) * 100}%`;
         label.style.opacity = Math.max(0, number.life / number.maxLife);
@@ -1212,7 +1263,8 @@ class Character {
         this.type = type;
         this.name = animalData.name;
         this.emoji = animalData.emoji;
-        this.color = animalData.color;
+        this.skin = getSelectedHeroSkin(type);
+        this.color = this.skin?.color || animalData.color;
 
         this.level = 1;
         this.exp = 0;
@@ -1260,6 +1312,11 @@ class Character {
     addExp(amount) {
         // 5V5 是纯团队战，不产生等级、经验或升级选择。
         if (gameState.mode === 'team') return false;
+        // 新手实战只展示拾取、技能和战斗，不触发升级界面打断教学。
+        if (gameState.mode === 'tutorial') {
+            this.exp = Math.min(this.expToLevel - 1, this.exp + amount);
+            return false;
+        }
         this.exp += amount;
         return this.tryLevelUp();
     }
@@ -1359,7 +1416,7 @@ class Character {
             this.reflectHits--;
             const reflected = Math.max(1, Math.ceil(actualDamage * this.reflectRatio));
             source.hp -= reflected;
-            spawnDamageNumber(source, reflected, false, 'player');
+            spawnDamageNumber(source, reflected, false, 'reflect');
         }
         return actualDamage;
     }
@@ -1879,7 +1936,7 @@ const TUTORIAL_STEPS = [
     '这是新手实战：按 WASD 或方向键，让小猫先走起来。',
     '跟着箭头吃掉这个经验点：会获得经验并回复 1 点生命。',
     '靠近宝箱打开它。奖励会先围在宝箱旁，再自动飞进你身上。',
-    '点击左上角的主动技能按钮，试试小猫的成长呼噜。',
+    '点击屏幕中间偏右的主动技能按钮，试试小猫的成长呼噜。',
     '最后靠近小兔子并击败它。碰到敌人会自动攻击；脱战 5 秒会自动回血。你造成的伤害是黑色，暴击是红色；敌人造成的伤害是黄色。进入排位或爬塔后，右侧“找死·全员来战”会让所有敌人主动找你；再按一次即可取消。'
 ];
 
@@ -1969,7 +2026,7 @@ function returnToHallWithIntro() {
     if (!gameState.tutorial || !gameState.tutorial.completed) return finishTutorial();
     exitTutorialBattle();
     gameState.hallIntroShowing = true;
-    document.getElementById('tutorialText').textContent = '欢迎来到大厅！上方可以查看账号等级、金币和信誉分；中间可选择爬塔、排位爬塔或 5v5 团队模式；下方的英雄、背包、商城和邮件可用于管理账号与领取奖励。';
+    document.getElementById('tutorialText').textContent = '欢迎来到大厅！上方可以查看账号等级和金币；中间可选择爬塔、排位爬塔或 5v5 团队模式；下方的英雄、背包、商城、英雄之路和邮件可用于管理账号、查看奖励路线与领取奖励。';
     document.getElementById('tutorialNext').textContent = '进入大厅';
     document.getElementById('tutorialSkip').style.display = 'none';
     document.getElementById('tutorialModal').classList.remove('hidden');
@@ -2076,6 +2133,20 @@ function grantEligiblePolarRewards() {
     }
     localStorage.setItem('polarLevelRewardMilestone', rewardedLevelMilestone);
 }
+// 奖励路线调整后，旧账号曾按旧顺序领过奖励；按当前段位补发缺少的对应英雄，绝不扣回已领取英雄。
+function repairPolarRewardTrack() {
+    if (localStorage.getItem('polarRewardTrackVersion') === '2') return;
+    for (let tier = 1; tier <= gameState.rank.tier; tier++) {
+        const hero = POLAR_RANK_REWARDS[tier - 1];
+        if (hero) sendSpecificPolarHeroReward(`奖励路线补发 · ${RANK_TIERS[tier]}`, hero);
+    }
+    const milestones = Math.floor(gameState.account.level / 5);
+    for (let milestone = 1; milestone <= milestones; milestone++) {
+        const hero = POLAR_LEVEL_REWARDS[milestone - 1];
+        if (hero) sendSpecificPolarHeroReward(`奖励路线补发 · 账号 Lv.${milestone * 5}`, hero);
+    }
+    localStorage.setItem('polarRewardTrackVersion', '2');
+}
 function claimMail(index) {
     const mails = getMails();
     const mail = mails[index];
@@ -2147,6 +2218,7 @@ function initAccount() {
         gameState.account.inventory.renameCard = gameState.account.inventory.renameCard || 0;
         sendRewardMail('欢迎加入！', '欢迎礼包：一张改名卡。请前往邮件手动领取。', { renameCard: 1 });
     }
+    repairPolarRewardTrack();
     saveAccount();
 }
 function saveAccount() {
@@ -2195,7 +2267,11 @@ function openAccountPanel(kind) {
     const cards = (items) => `<div class="animals-grid">${items}</div>`;
     if (kind === 'hero') {
         title.textContent = '🦸 英雄图鉴';
-        content.innerHTML = cards(heroesByPower().map(([key, h]) => `<div class="animal-card" style="opacity:${h.unlocked ? 1 : .55}"><div class="animal-emoji">${heroIconMarkup(key, h)}</div><div>${heroRarityMarkup(h)}</div><div class="animal-name">${h.name}</div><div class="animal-stats">战力 ${calculateHeroPower(h)}<br>${h.unlocked ? '已解锁' : h.rewardOnly ? `❄️ ${polarUnlockCondition(key)}` : h.signOnly ? '签到专属' : `售价 ${h.price} 金币`}</div></div>`).join(''));
+        content.innerHTML = cards(heroesByPower().map(([key, h]) => {
+            const skinChoices = h.unlocked && HERO_SKINS[key]?.length > 1
+                ? `<div class="skin-choices"><small>皮肤：</small>${HERO_SKINS[key].map(skin => `<button class="skin-dot${getSelectedHeroSkin(key)?.id === skin.id ? ' selected' : ''}" type="button" title="${skin.name}" style="background:${skin.color}" onclick="selectHeroSkin('${key}','${skin.id}')"></button>`).join('')}</div>` : '';
+            return `<div class="animal-card" style="opacity:${h.unlocked ? 1 : .55}"><div class="animal-emoji">${heroIconMarkup(key, h)}</div><div>${heroRarityMarkup(h)}</div><div class="animal-name">${h.name}</div><div class="animal-stats">战力 ${calculateHeroPower(h)}<br>${h.unlocked ? '已解锁' : h.rewardOnly ? `❄️ ${polarUnlockCondition(key)}` : h.signOnly ? '签到专属' : `售价 ${h.price} 金币`}</div>${skinChoices}</div>`;
+        }).join(''));
     } else if (kind === 'road') {
         title.textContent = '🧭 英雄之路';
         const rankRoad = RANK_TIERS.slice(1).map((tier, index) => `<div class="skill-card"><div class="skill-name">${gameState.rank.tier >= index + 1 ? '✅' : '🔒'} 晋升 ${tier}</div><div class="skill-desc">奖励：${heroIconMarkup(POLAR_RANK_REWARDS[index], ANIMALS[POLAR_RANK_REWARDS[index]])} ${ANIMALS[POLAR_RANK_REWARDS[index]].name}</div></div>`).join('');
@@ -2571,7 +2647,12 @@ function finishRankedMatch(won, rankRewardOverride = null) {
 }
 
 function spawnTeamBattle() {
-    const types = Object.keys(ANIMALS);
+    // 团队战跟随玩家所选英雄的生态场景，队友与敌人都不会混进别的栖息地。
+    const types = gameState.environment === 'ocean' ? OCEAN_TYPES
+        : gameState.environment === 'sky' ? SKY_TYPES
+        : gameState.environment === 'polar' ? POLAR_TYPES
+        : gameState.environment === 'pond' ? POND_TYPES
+        : gameState.environment === 'savanna' ? SAVANNA_TYPES : LAND_TYPES;
     for (let i = 0; i < 4; i++) {
         const ally = new Enemy(types[Math.floor(Math.random() * types.length)], 360 + i * 55, 430 + (i % 2) * 55);
         ally.name = `队友·${ally.name}`; ally.team = 'blue'; ally.color = '#4ca8ff';
@@ -2958,7 +3039,7 @@ function render() {
             ctx.globalAlpha = Math.max(0, number.life / number.maxLife);
             ctx.font = `900 ${number.critical ? 28 : 20}px Arial`;
             ctx.textAlign = 'center';
-            ctx.fillStyle = number.combo ? '#9c4dff' : number.critical ? '#e53935' : number.source === 'enemy' ? '#ffcc39' : '#111';
+            ctx.fillStyle = number.combo ? '#9c4dff' : number.critical ? '#e53935' : number.source === 'enemy' ? '#ffcc39' : number.source === 'reflect' ? '#123b8d' : '#111';
             ctx.strokeStyle = '#fff';
             ctx.lineWidth = 3;
             const text = `-${number.amount}`;

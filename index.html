@@ -115,6 +115,12 @@
         .damage-number.critical { color:#ef3131; font-size:25px; text-shadow:0 1px 2px #fff, 0 0 8px #ff8686; }
         .damage-number.combo-hit { color:#9c4dff; font-size:22px; text-shadow:0 1px 2px #fff, 0 0 8px #c59aff; }
         .damage-number.enemy-hit { color:#ffe254; text-shadow:0 2px 3px #684f00; }
+        .damage-number.reflect-hit { color:#123b8d; text-shadow:0 1px 2px #d5e9ff,0 0 7px #508de9; }
+        .player-focus-marker { position:absolute; z-index:5; transform:translate(-50%,-115%); color:#ffe34d; font-size:34px; font-weight:900; line-height:1; text-shadow:0 2px 3px #5c4600,0 0 10px #fff1a2; pointer-events:none; animation:player-focus-bob .65s ease-in-out infinite alternate; }
+        .player-world-hp { position:absolute; z-index:4; transform:translate(-50%,-100%); min-width:72px; color:#fff; font-size:11px; font-weight:800; text-align:center; text-shadow:0 1px 3px #000; pointer-events:none; }
+        .player-world-hp > div { height:7px; margin-top:2px; background:#38191d; border:1px solid rgba(255,255,255,.85); border-radius:5px; overflow:hidden; }
+        .player-world-hp i { display:block; height:100%; background:linear-gradient(90deg,#5cf08c,#21b85d); }
+        @keyframes player-focus-bob { from { margin-top:-3px; } to { margin-top:5px; } }
         .dash-aim { position:absolute; height:3px; transform-origin:left center; background:repeating-linear-gradient(90deg,#ffe14d 0 12px,transparent 12px 20px); box-shadow:0 0 6px #ff9800; opacity:.9; }
         #tutorialCoach { position:absolute; z-index:300; display:none; width:220px; transform:translate(-50%,-100%); pointer-events:none; text-align:center; }
         #tutorialArrow { color:#ffe63b; font-size:46px; line-height:.8; text-shadow:0 3px 4px #4d3c00; animation:tutorial-bob .7s ease-in-out infinite alternate; }
@@ -251,10 +257,13 @@
         .pigeon-icon::after { content:""; position:absolute; left:41px; top:20px; border-left:12px solid #db9e45; border-top:5px solid transparent; border-bottom:5px solid transparent; }
         .pigeon-icon i { position:absolute; left:34px; top:18px; z-index:2; font-style:normal; font-size:14px; color:#fff; transform:rotate(10deg); }
         .snow-owl-icon { display:inline-block; filter:grayscale(1) brightness(2.15) contrast(.78) drop-shadow(0 1px 1px #5b6b78); }
-        .puffin-icon { position:relative; display:inline-block; width:54px; height:48px; vertical-align:middle; }
-        .puffin-icon::before { content:""; position:absolute; left:12px; top:7px; width:29px; height:37px; border-radius:48% 48% 42% 42%; background:linear-gradient(90deg,#172436 0 25%,#f7f4e9 25% 75%,#172436 75%); }
-        .puffin-icon i { position:absolute; left:31px; top:16px; width:25px; height:13px; border-radius:4px 10px 10px 4px; background:linear-gradient(#d94e38 0 30%,#f28c28 30% 78%,#4e83a7 78%); z-index:2; }
-        .puffin-icon b { position:absolute; left:18px; top:13px; width:5px; height:5px; background:#111; border-radius:50%; z-index:3; }
+        .puffin-icon { position:relative; display:inline-block; width:42px; height:38px; vertical-align:middle; }
+        .puffin-icon::before { content:""; position:absolute; left:9px; top:5px; width:23px; height:30px; border-radius:48% 48% 42% 42%; background:linear-gradient(90deg,#172436 0 25%,#f7f4e9 25% 75%,#172436 75%); }
+        .puffin-icon i { position:absolute; left:24px; top:13px; width:20px; height:10px; border-radius:4px 10px 10px 4px; background:linear-gradient(#d94e38 0 30%,#f28c28 30% 78%,#4e83a7 78%); z-index:2; }
+        .puffin-icon b { position:absolute; left:14px; top:10px; width:4px; height:4px; background:#111; border-radius:50%; z-index:3; }
+        .skin-choices { display:flex; align-items:center; justify-content:center; gap:5px; margin-top:8px; font-size:11px; color:#667; }
+        .skin-dot { width:18px; height:18px; border:2px solid #fff; border-radius:50%; box-shadow:0 0 0 1px #8a96a3; cursor:pointer; padding:0; }
+        .skin-dot.selected { transform:scale(1.18); box-shadow:0 0 0 2px #ffbe32; }
         .bird-icon { position:relative; display:inline-block; width:70px; height:48px; vertical-align:middle; }
         .bird-icon i { position:absolute; left:28px; top:17px; width:16px; height:20px; border-radius:52% 52% 46% 46%; background:#734523; z-index:2; }
         .bird-icon b { position:absolute; top:12px; width:34px; height:20px; background:#8b5b32; clip-path:polygon(0 55%,100% 0,73% 100%); }
@@ -523,6 +532,6 @@
         </div>
     </div>
 
-    <script src="game.js?v=3.2.8"></script>
+    <script src="game.js?v=3.2.9"></script>
 </body>
 </html>

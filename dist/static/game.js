@@ -782,7 +782,14 @@ function build3DMesh(entity, kind) {
     }
     if (kind === 'skill') {
         const skillMat = new Three.MeshStandardMaterial({ color: entity.color, emissive: entity.color, emissiveIntensity: 1.25, roughness: .25 });
-        if (entity.kind === 'aura') {
+        if (entity.effect === 'shield' || entity.effect === 'healShield') {
+            // 护盾贴着英雄形成半透明护甲球，而不是仅在地面画一圈。
+            const shieldColor = entity.effect === 'healShield' ? 0xffb84d : 0x62cfff;
+            const shellMat = new Three.MeshStandardMaterial({ color:shieldColor, emissive:shieldColor, emissiveIntensity:1.15, transparent:true, opacity:.24, roughness:.18, side:Three.DoubleSide });
+            const edgeMat = new Three.MeshBasicMaterial({ color:shieldColor, transparent:true, opacity:.75, wireframe:true });
+            const shell = new Three.Mesh(new Three.SphereGeometry(.82, 18, 12), shellMat); shell.position.y=.62; group.add(shell);
+            const edges = new Three.Mesh(new Three.IcosahedronGeometry(.86, 2), edgeMat); edges.position.y=.62; group.add(edges);
+        } else if (entity.kind === 'aura') {
             const ring = new Three.Mesh(new Three.TorusGeometry(entity.radius / 42, .055, 7, 16), skillMat);
             ring.rotation.x = -Math.PI / 2; ring.position.y = .09; group.add(ring);
         } else {
@@ -1142,6 +1149,8 @@ class Character {
         this.speed = animalData.baseSpeed;
         this.maxHp = animalData.baseHp;
         this.hp = this.maxHp;
+        this.poisonTicks = 0;
+        this.poisonProgress = 0;
 
         this.x = x;
         this.y = y;
@@ -1484,6 +1493,7 @@ class SkillEffect {
         this.y = owner.y;
         this.color = owner.color;
         this.name = active.name;
+        this.effect = active.effect;
         this.radius = 26;
         this.life = 48;
         this.hitEnemies = new Set();
@@ -2955,7 +2965,7 @@ function gameLoop(timestamp = performance.now()) {
         gameState.allies.forEach(ally => ally.update(frameScale));
         gameState.enemies.forEach(enemy => enemy.update(frameScale));
         for (const enemy of [...gameState.enemies]) {
-            if (enemy.poisonTicks <= 0) continue;
+            if (!enemy.poisonTicks || enemy.poisonTicks <= 0) continue;
             enemy.poisonTicks = Math.max(0, enemy.poisonTicks - frameScale);
             enemy.poisonProgress = (enemy.poisonProgress || 0) + frameScale;
             if (enemy.poisonProgress >= TARGET_FPS) {

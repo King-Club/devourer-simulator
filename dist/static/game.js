@@ -1614,7 +1614,8 @@ class Particle {
             const distance = Math.hypot(dx, dy);
             if (distance > 0) {
                 // 每一帧重新朝玩家当前位置转向，角色拐弯时粒子也会立刻跟随。
-                const speed = Math.min(18, 6 + distance * 0.08);
+                // 宝箱奖励使用较慢且清晰的追踪轨迹，避免刚出现就瞬间被吸收而看不见飞入效果。
+                const speed = this.chestReward ? Math.min(12, 3 + distance * 0.055) : Math.min(18, 6 + distance * 0.08);
                 const turn = 1 - Math.pow(0.55, frameScale);
                 this.vx += ((dx / distance) * speed - this.vx) * turn;
                 this.vy += ((dy / distance) * speed - this.vy) * turn;
@@ -1881,7 +1882,8 @@ function spawnChestRewards(x, y) {
         // 直接摆成一圈，不再向远处飞散。
         particle.vx = 0;
         particle.vy = 0;
-        particle.pickupDelay = 16;
+        // 先在宝箱旁展示一小段时间，再像击杀掉落一样追踪飞入玩家。
+        particle.pickupDelay = 42;
         particle.chestReward = true;
         particle.autoCollect = true;
         particle.life = 900;

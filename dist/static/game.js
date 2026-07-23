@@ -288,10 +288,11 @@ Object.entries(REALISTIC_SKILLS).forEach(([type, [name, desc, effect, values]]) 
         active: {name, desc, effect, cooldown: effect === 'dash' ? 10 : effect === 'heal' ? 13 : 11, ...values}
     };
 });
-const OCEAN_TYPES=['dolphin','shark','seal','whale','orca','octopus','jellyfish'];
+const OCEAN_TYPES=['dolphin','shark','seal','whale','orca','octopus','jellyfish','narwhal'];
 const SKY_TYPES=['eagle','owl','crane','phoenix','bat','parrot','falcon','albatross','hummingbird','swan','condor','pelican','raven','pigeon','goose','cockatoo','kitebird'];
 // 雪狼本身是极地动物，也应和北极英雄一起进入极地场景与敌人池。
-const POLAR_TYPES=[...POLAR_HERO_KEYS,'wolf'];
+// 独角鲸虽然是极地奖励英雄，但战斗栖息地是海洋，不能生成在雪地上。
+const POLAR_TYPES=[...POLAR_HERO_KEYS.filter(type => type !== 'narwhal'),'wolf'];
 const POND_TYPES=['crocodile','otter','hippo','flamingo','turtle','elephant'];
 const SAVANNA_TYPES=['lion','africanElephant','giraffe','zebra','rhino'];
 const LAND_TYPES=Object.keys(ANIMALS).filter(type => !OCEAN_TYPES.includes(type) && !SKY_TYPES.includes(type) && !POLAR_TYPES.includes(type) && !POND_TYPES.includes(type) && !SAVANNA_TYPES.includes(type));
@@ -325,6 +326,7 @@ function heroesByPower(entries = Object.entries(ANIMALS)) {
     return [...entries].sort(([, a], [, b]) => calculateHeroPower(a) - calculateHeroPower(b) || a.name.localeCompare(b.name));
 }
 function heroIconMarkup(key, hero) {
+    if (key === 'hedgehog' && getSelectedHeroSkin(key)?.id === 'durian') return '<span class="durian-hedgehog-icon" role="img" aria-label="榴莲刺猬">🦔</span>';
     if (key === 'orca') return '<span class="orca-icon" role="img" aria-label="虎鲸"><i></i><b class="orca-eye-patch"></b><b class="orca-belly-patch"></b></span>';
     if (key === 'bear') return '<span class="black-bear-icon" role="img" aria-label="黑熊"><i></i><b></b><b></b></span>';
     if (key === 'pigeon') return '<span class="pigeon-icon" role="img" aria-label="信鸽"><i>✉</i></span>';
@@ -1038,6 +1040,25 @@ function build3DMesh(entity, kind) {
     }
 
     // 鲨鱼采用横向鱼身、尾鳍、背鳍和胸鳍，不再使用四脚动物的通用身体。
+    if (kind !== 'particle' && entity.type === 'narwhal') {
+        // 独角鲸：圆润鲸身、两片尾鳍、胸鳍，以及从额头伸出的长螺旋独角。
+        const bodyMat = new Three.MeshStandardMaterial({ color:0xa8c9db, roughness:.72, flatShading:true });
+        const bellyMat = new Three.MeshStandardMaterial({ color:0xeaf4f7, roughness:.7, flatShading:true });
+        const hornMat = new Three.MeshStandardMaterial({ color:0xf2e6c9, emissive:0x403722, emissiveIntensity:.18, roughness:.45, flatShading:true });
+        const body = add(new Three.SphereGeometry(.46,14,9), bodyMat,0,.52,.08,1.38,.78,2.05);
+        add(new Three.SphereGeometry(.3,11,8), bellyMat,0,.39,-.1,1.25,.28,1.7);
+        add(new Three.SphereGeometry(.055,7,6),dark,-.17,.66,-.78);
+        add(new Three.SphereGeometry(.055,7,6),dark,.17,.66,-.78);
+        [-1,1].forEach(side => { const flipper=add(new Three.ConeGeometry(.16,.6,5),bodyMat,side*.48,.42,-.02); flipper.rotation.z=side*.94; });
+        [-1,1].forEach(side => { const fluke=add(new Three.SphereGeometry(.23,8,6),bodyMat,side*.2,.54,1.02,.9,.22,1.35); fluke.rotation.z=side*.38; });
+        const horn=add(new Three.ConeGeometry(.095,1.18,7),hornMat,0,.72,-1.02); horn.rotation.x=-Math.PI/2;
+        for (let i=0;i<5;i++) {
+            const band=add(new Three.TorusGeometry(.102-i*.011,.012,5,8),new Three.MeshStandardMaterial({color:0x9b896a,roughness:.55}),0,.72,-.76-i*.19);
+            band.rotation.x=Math.PI/2;
+        }
+        group.userData={flying:false,swimming:true,wings:[],legs:[],body}; threeScene.add(group); return group;
+    }
+
     if (kind !== 'particle' && OCEAN_TYPES.includes(entity.type)) {
         const sharkBody = add(new Three.SphereGeometry(.42, 12, 8), material, 0, .53, .05, 1.5, .7, 2.25);
         add(new Three.SphereGeometry(.055, 7, 6), dark, -.16, .64, -.7);
@@ -1156,6 +1177,16 @@ function build3DMesh(entity, kind) {
     }
     if (type === 'monkey') { add(new Three.SphereGeometry(.13,8,6),material,-.3*size,.78*size,0); add(new Three.SphereGeometry(.13,8,6),material,.3*size,.78*size,0); const tail=add(new Three.TorusGeometry(.28*size,.045*size,6,10,Math.PI),material,0,.42*size,.55*size); tail.rotation.x=Math.PI/2; }
     if (type === 'otter') { const tail=add(new Three.ConeGeometry(.18*size,.65*size,5),material,0,.36*size,.65*size); tail.rotation.x=Math.PI/2; }
+    if (type === 'chameleon') {
+        // 变色龙最显眼的卷尾：两段弯曲尾巴与球状眼睛。
+        const curl=add(new Three.TorusGeometry(.3*size,.055*size,6,12,Math.PI*1.55),material,0,.45*size,.6*size); curl.rotation.x=Math.PI/2; curl.rotation.z=.45;
+        [-.2,.2].forEach(x => add(new Three.SphereGeometry(.11*size,8,6),light,x,.88*size,-.16*size));
+    }
+    if (type === 'squirrel') add(new Three.SphereGeometry(.3*size,9,7),material,0,.65*size,.58*size,.82,1.2,1.35);
+    if (['deer','giraffe','zebra','llama','goat','elephant','africanElephant','hippo'].includes(type)) {
+        const tail=add(new Three.CylinderGeometry(.028*size,.045*size,.52*size,5),material,0,.48*size,.64*size); tail.rotation.x=Math.PI/2;
+        add(new Three.SphereGeometry(.07*size,7,5),dark,0,.43*size,.92*size);
+    }
     if (['eagle','owl','snowOwl','crane','phoenix','falcon','albatross','hummingbird','swan','condor','pelican','flamingo','raven','pigeon','goose','cockatoo','kitebird'].includes(type)) { wing(-.48); wing(.48); add(new Three.ConeGeometry(.11*size,.35*size,4), type==='phoenix' ? new Three.MeshStandardMaterial({color:0xff5b2e,emissive:0x551100}) : new Three.MeshStandardMaterial({color:0xffcc4a}), 0,.62*size,-.44*size).rotation.x=-Math.PI/2; }
     if (type === 'flamingo') {
         // 火烈鸟是涉水地面鸟：长腿行走，不会漂浮在天空场景。
@@ -1327,12 +1358,13 @@ function renderEnemyLabels() {
 
 // ============ 角色类 ============
 class Character {
-    constructor(type, x = GAME_WIDTH / 2, y = GAME_HEIGHT / 2) {
+    constructor(type, x = GAME_WIDTH / 2, y = GAME_HEIGHT / 2, useSkin = true) {
         const animalData = ANIMALS[type];
         this.type = type;
         this.name = animalData.name;
         this.emoji = animalData.emoji;
-        this.skin = getSelectedHeroSkin(type);
+        // 已购买的皮肤只属于玩家本人，AI 敌人永远使用默认外观。
+        this.skin = useSkin ? getSelectedHeroSkin(type) : null;
         this.color = this.skin?.color || animalData.color;
 
         this.level = 1;
@@ -1567,7 +1599,7 @@ class Character {
 // ============ 敌人AI ============
 class Enemy extends Character {
     constructor(type, x, y) {
-        super(type, x, y);
+        super(type, x, y, false);
         this.targetX = x;
         this.targetY = y;
         this.changeDirectionTimer = Math.random() * 100 + 50;
@@ -2356,12 +2388,15 @@ function showHall() {
     // 信誉分系统已移除，账号只保留等级与金币进度。
     document.getElementById('hallHeroes').textContent = `英雄图鉴：${unlocked}/${Object.keys(ANIMALS).length} 已解锁（进入模式后可购买英雄）`;
     const signedToday = localStorage.getItem('signDate') === new Date().toDateString();
-    const signDay = Math.min(7, parseInt(localStorage.getItem('signDay')) || 0);
-    const todayDay = signDay >= 7 ? 7 : (signedToday ? signDay : signDay + 1);
-    document.getElementById('signInCard').hidden = signDay >= 7;
-    document.getElementById('signProgress').textContent = signDay >= 7 ? '新手七日签到已完成' : `今天是新手签到第 ${todayDay} 天（进度 ${signDay}/7）`;
-    document.getElementById('signButton').disabled = signedToday || signDay >= 7;
-    document.getElementById('signButton').textContent = signDay >= 7 ? '新手签到已完成' : (signedToday ? '今日已签到' : `签到第 ${todayDay} 天`);
+    let signDay = Math.min(7, parseInt(localStorage.getItem('signDay')) || 0);
+    // 老存档可能没有写入第七天计数；已拥有签到专属狐狸和火凤凰就视为完成。
+    const signComplete = signDay >= 7 || (ANIMALS.fox.unlocked && ANIMALS.phoenix.unlocked);
+    if (signComplete && signDay < 7) { signDay = 7; localStorage.setItem('signDay', '7'); }
+    const todayDay = signComplete ? 7 : (signedToday ? signDay : signDay + 1);
+    document.getElementById('signInCard').hidden = signComplete;
+    document.getElementById('signProgress').textContent = signComplete ? '新手七日签到已完成' : `今天是新手签到第 ${todayDay} 天（进度 ${signDay}/7）`;
+    document.getElementById('signButton').disabled = signedToday || signComplete;
+    document.getElementById('signButton').textContent = signComplete ? '新手签到已完成' : (signedToday ? '今日已签到' : `签到第 ${todayDay} 天`);
     document.getElementById('deviceModeText').textContent = `当前：${controlMode === 'mobile' ? '手机摇杆' : '电脑键盘'}`;
     document.getElementById('desktopModeButton').classList.toggle('selected', controlMode === 'desktop');
     document.getElementById('mobileModeButton').classList.toggle('selected', controlMode === 'mobile');

@@ -342,18 +342,34 @@ const HERO_SKINS = {
     tiger:[{id:'default',name:'橙纹猛虎',color:'#FF8C00'},{id:'white',name:'白纹猛虎',color:'#e7edf2'}],
     northeastTiger:[{id:'default',name:'东北虎',color:'#d98224'},{id:'snow',name:'雪林虎王',color:'#eef1ee'}],
     shark:[{id:'default',name:'深海灰鲨',color:'#63869b'},{id:'abyss',name:'深渊蓝鲨',color:'#274e72'}],
-    flamingo:[{id:'default',name:'粉羽火烈鸟',color:'#ef7fa8'},{id:'coral',name:'珊瑚火烈鸟',color:'#ff6f79'}]
+    flamingo:[{id:'default',name:'粉羽火烈鸟',color:'#ef7fa8'},{id:'coral',name:'珊瑚火烈鸟',color:'#ff6f79'}],
+    hedgehog:[{id:'default',name:'森林刺猬',color:'#8B4513'},{id:'durian',name:'榴莲刺猬',color:'#c7a52c',price:10000}]
 };
+function ownedSkinKeys() {
+    try { return new Set(JSON.parse(localStorage.getItem('ownedSkins') || '[]')); } catch { return new Set(); }
+}
+function skinKey(type, id) { return `${type}:${id}`; }
+function ownsSkin(type, skin) { return !skin.price || ownedSkinKeys().has(skinKey(type, skin.id)); }
 function getSelectedHeroSkin(type) {
     const skins = HERO_SKINS[type];
     if (!skins) return null;
     const saved = localStorage.getItem(`heroSkin:${type}`) || 'default';
-    return skins.find(skin => skin.id === saved) || skins[0];
+    const selected = skins.find(skin => skin.id === saved) || skins[0];
+    return ownsSkin(type, selected) ? selected : skins[0];
 }
 function selectHeroSkin(type, skinId) {
     if (!ANIMALS[type]?.unlocked) return window.alert('请先解锁该英雄。');
     const skin = HERO_SKINS[type]?.find(item => item.id === skinId);
     if (!skin) return;
+    if (!ownsSkin(type, skin)) {
+        if (!window.confirm(`确定花费 ${skin.price} 金币购买「${skin.name}」吗？`)) return;
+        if (gameState.stats.coins < skin.price) return window.alert('您的金币不足！');
+        gameState.stats.coins -= skin.price;
+        const owned = ownedSkinKeys(); owned.add(skinKey(type, skin.id));
+        localStorage.setItem('ownedSkins', JSON.stringify([...owned]));
+        localStorage.setItem('coins', gameState.stats.coins);
+        window.alert(`购买成功！已获得「${skin.name}」。`);
+    }
     localStorage.setItem(`heroSkin:${type}`, skin.id);
     openAccountPanel('hero');
 }
@@ -1089,7 +1105,19 @@ function build3DMesh(entity, kind) {
         [-.16,.16].forEach(x => { const tusk=add(new Three.ConeGeometry(.055*size,.36*size,5),light,x*size,.47*size,-.43*size); tusk.rotation.x=-1.2; });
     }
     if (type === 'boar') { [-.16,.16].forEach(x => { const tusk=add(new Three.ConeGeometry(.06*size,.34*size,5),light,x*size,.44*size,-.42*size); tusk.rotation.x=-1.3; }); }
-    if (type === 'hedgehog') { for(let i=-3;i<=3;i++){ const spike=add(new Three.ConeGeometry(.11*size,.52*size,5),dark,i*.1*size,.77*size,.15*size); spike.rotation.z=i*.16; } }
+    if (type === 'hedgehog') {
+        const isDurian = entity.skin?.id === 'durian';
+        const quillMat = new Three.MeshStandardMaterial({ color:isDurian ? 0x5f8b28 : 0x4a2c22, roughness:.82, flatShading:true });
+        const faceMat = new Three.MeshStandardMaterial({ color:isDurian ? 0xd2af50 : 0xc58d69, roughness:.78, flatShading:true });
+        // 圆滚刺背、浅色小脸和分层刺毛，榴莲皮肤会变成黄绿外壳。
+        add(new Three.SphereGeometry(.48, 11, 8), quillMat, 0,.55*size,.24*size,1.15*size,.9*size,1.18*size);
+        add(new Three.SphereGeometry(.26, 9, 7), faceMat, 0,.56*size,-.36*size,1.05*size,.8*size,1.18*size);
+        add(new Three.SphereGeometry(.07,7,6),dark,0,.5*size,-.62*size,1,.72,1.35);
+        for (let row=0; row<3; row++) for (let i=-3; i<=3; i++) {
+            const spike=add(new Three.ConeGeometry((isDurian ? .075 : .06)*size,(isDurian ? .38 : .34)*size,5),quillMat,i*.105*size,(.76+row*.13)*size,(.06+row*.13)*size);
+            spike.rotation.z=i*.12; spike.rotation.x=-.35+row*.2;
+        }
+    }
     if (type === 'monkey') { add(new Three.SphereGeometry(.13,8,6),material,-.3*size,.78*size,0); add(new Three.SphereGeometry(.13,8,6),material,.3*size,.78*size,0); const tail=add(new Three.TorusGeometry(.28*size,.045*size,6,10,Math.PI),material,0,.42*size,.55*size); tail.rotation.x=Math.PI/2; }
     if (type === 'otter') { const tail=add(new Three.ConeGeometry(.18*size,.65*size,5),material,0,.36*size,.65*size); tail.rotation.x=Math.PI/2; }
     if (['eagle','owl','snowOwl','crane','phoenix','falcon','albatross','hummingbird','swan','condor','pelican','flamingo','raven','pigeon','goose','cockatoo','kitebird'].includes(type)) { wing(-.48); wing(.48); add(new Three.ConeGeometry(.11*size,.35*size,4), type==='phoenix' ? new Three.MeshStandardMaterial({color:0xff5b2e,emissive:0x551100}) : new Three.MeshStandardMaterial({color:0xffcc4a}), 0,.62*size,-.44*size).rotation.x=-Math.PI/2; }
@@ -2269,7 +2297,7 @@ function openAccountPanel(kind) {
         title.textContent = '🦸 英雄图鉴';
         content.innerHTML = cards(heroesByPower().map(([key, h]) => {
             const skinChoices = h.unlocked && HERO_SKINS[key]?.length > 1
-                ? `<div class="skin-choices"><small>皮肤：</small>${HERO_SKINS[key].map(skin => `<button class="skin-dot${getSelectedHeroSkin(key)?.id === skin.id ? ' selected' : ''}" type="button" title="${skin.name}" style="background:${skin.color}" onclick="selectHeroSkin('${key}','${skin.id}')"></button>`).join('')}</div>` : '';
+                ? `<div class="skin-choices"><small>皮肤：</small>${HERO_SKINS[key].map(skin => `<button class="skin-dot${getSelectedHeroSkin(key)?.id === skin.id ? ' selected' : ''}${!ownsSkin(key, skin) ? ' locked' : ''}" type="button" title="${skin.name}${skin.price ? ` · ${skin.price} 金币` : ''}" style="background:${skin.color}" onclick="selectHeroSkin('${key}','${skin.id}')"></button>`).join('')}${HERO_SKINS[key].some(skin => skin.price && !ownsSkin(key, skin)) ? `<small>🪙${HERO_SKINS[key].find(skin => skin.price && !ownsSkin(key, skin)).price}</small>` : ''}</div>` : '';
             return `<div class="animal-card" style="opacity:${h.unlocked ? 1 : .55}"><div class="animal-emoji">${heroIconMarkup(key, h)}</div><div>${heroRarityMarkup(h)}</div><div class="animal-name">${h.name}</div><div class="animal-stats">战力 ${calculateHeroPower(h)}<br>${h.unlocked ? '已解锁' : h.rewardOnly ? `❄️ ${polarUnlockCondition(key)}` : h.signOnly ? '签到专属' : `售价 ${h.price} 金币`}</div>${skinChoices}</div>`;
         }).join(''));
     } else if (kind === 'road') {

@@ -264,6 +264,7 @@
         .skin-choices { display:flex; align-items:center; justify-content:center; gap:5px; margin-top:8px; font-size:11px; color:#667; }
         .skin-dot { width:18px; height:18px; border:2px solid #fff; border-radius:50%; box-shadow:0 0 0 1px #8a96a3; cursor:pointer; padding:0; }
         .skin-dot.selected { transform:scale(1.18); box-shadow:0 0 0 2px #ffbe32; }
+        .skin-dot.locked { opacity:.5; box-shadow:0 0 0 1px #8a96a3, inset 0 0 0 3px rgba(0,0,0,.35); }
         .bird-icon { position:relative; display:inline-block; width:70px; height:48px; vertical-align:middle; }
         .bird-icon i { position:absolute; left:28px; top:17px; width:16px; height:20px; border-radius:52% 52% 46% 46%; background:#734523; z-index:2; }
         .bird-icon b { position:absolute; top:12px; width:34px; height:20px; background:#8b5b32; clip-path:polygon(0 55%,100% 0,73% 100%); }
@@ -532,6 +533,6 @@
         </div>
     </div>
 
-    <script src="game.js?v=3.2.9"></script>
+    <script src="game.js?v=3.3.0"></script>
 </body>
 </html>

@@ -414,7 +414,7 @@ SKILLS.push(
     { name:'无尽连击', desc:'攻击 +8，连击率 +20%', type:'compound', value:{attack:8,combo:.20}, rarity:'mythic' },
     { name:'风暴连环', desc:'攻击 +14，连击率 +25%，暴击率 +10%', type:'compound', value:{attack:14,combo:.25,crit:.10}, rarity:'legendary' }
 );
-const MAX_COMBO_CHANCE = .95;
+const MAX_COMBO_CHANCE = 1;
 
 const RARITY_INFO = { normal:{label:'普通',weight:55}, rare:{label:'稀有',weight:26}, epic:{label:'史诗',weight:12}, mythic:{label:'神话',weight:5}, legendary:{label:'传奇',weight:2} };
 
@@ -2451,7 +2451,7 @@ function openAccountPanel(kind) {
         content.innerHTML = `<div style="display:flex;gap:10px;margin-bottom:14px"><button class="btn btn-primary" type="button" onclick="switchShopTab('game')">🎮 游戏</button><button class="btn" type="button" onclick="switchShopTab('skin')">🎨 皮肤</button></div><div id="shopGame">${gameShop}</div><div id="shopSkin" style="display:none">${skinShop}</div>`;
     } else if (kind === 'feedback') {
         title.textContent = '💬 游戏反馈';
-        content.innerHTML = `<div class="feedback-box"><div class="feedback-heading">帮助吞噬模拟器变得更好</div><div>你可以反馈 Bug、英雄平衡、皮肤想法、场景建议和新玩法。提交后会创建一条公开的项目反馈，开发者可以看到并回复。</div></div><div class="feedback-actions"><a class="btn btn-success feedback-submit" href="https://github.com/devour-simulator/devourer-simulator/issues/new?title=%5B%E6%B8%B8%E6%88%8F%E5%8F%8D%E9%A6%88%5D%20" target="_blank" rel="noopener">📝 前往提交反馈</a></div><div class="tip">需要登录 GitHub 才能提交；不要在反馈中填写密码或个人隐私信息。</div>`;
+        content.innerHTML = `<div class="feedback-box"><div class="feedback-heading">帮助吞噬模拟器变得更好</div><div>你可以反馈 Bug、英雄平衡、皮肤想法、场景建议和新玩法。提交后会创建一条公开的项目反馈，开发者可以看到并回复。</div></div><div class="creator-note"><div class="creator-note-title">创作者的话</div><div>这款游戏还在不断成长。无论是一个小 Bug、一次“不好玩”的体验，还是一个天马行空的新想法，都欢迎告诉我。请不用担心自己的反馈不够专业——每一条认真留言，都是我继续优化《吞噬模拟器》的动力。谢谢你愿意和我一起把它做得更好。</div></div><div class="feedback-actions"><a class="btn btn-success feedback-submit" href="https://github.com/devour-simulator/devourer-simulator/issues/new?title=%5B%E6%B8%B8%E6%88%8F%E5%8F%8D%E9%A6%88%5D%20" target="_blank" rel="noopener">📝 前往提交反馈</a></div><div class="tip">需要登录 GitHub 才能提交；不要在反馈中填写密码或个人隐私信息。</div>`;
     } else {
         title.textContent = '✉️ 邮件';
         const mails = getMails();

@@ -339,12 +339,12 @@ function heroIconMarkup(key, hero) {
 
 // 皮肤不会改变面板数值，只改变进入对局后的配色；拥有英雄后即可在“英雄”页选择。
 const HERO_SKINS = {
-    lion:[{id:'default',name:'草原雄狮',color:'#d99132'},{id:'sunset',name:'落日雄狮',color:'#c56a2f',price:4000}],
+    lion:[{id:'default',name:'草原雄狮',color:'#d99132'},{id:'sunset',name:'落日雄狮',color:'#c56a2f',effectColor:'#ff642e',price:4000}],
     tiger:[{id:'default',name:'橙纹猛虎',color:'#FF8C00'}],
-    northeastTiger:[{id:'default',name:'东北虎',color:'#d98224'},{id:'snow',name:'雪林虎王',color:'#eef1ee',price:4000}],
-    shark:[{id:'default',name:'深海灰鲨',color:'#63869b'},{id:'abyss',name:'深渊蓝鲨',color:'#274e72',price:4000}],
-    flamingo:[{id:'default',name:'粉羽火烈鸟',color:'#ef7fa8'},{id:'coral',name:'珊瑚火烈鸟',color:'#ff6f79',price:4000}],
-    hedgehog:[{id:'default',name:'森林刺猬',color:'#8B4513'},{id:'durian',name:'榴莲刺猬',color:'#c7a52c',price:10000}]
+    northeastTiger:[{id:'default',name:'东北虎',color:'#d98224'},{id:'snow',name:'雪林虎王',color:'#eef1ee',effectColor:'#83d9ff',price:4000}],
+    shark:[{id:'default',name:'深海灰鲨',color:'#63869b'},{id:'abyss',name:'深渊蓝鲨',color:'#274e72',effectColor:'#215fc9',price:4000}],
+    flamingo:[{id:'default',name:'粉羽火烈鸟',color:'#ef7fa8'},{id:'coral',name:'珊瑚火烈鸟',color:'#ff6a68',effectColor:'#ff3e73',price:4000}],
+    hedgehog:[{id:'default',name:'森林刺猬',color:'#8B4513'},{id:'durian',name:'榴莲刺猬',color:'#c7a52c',effectColor:'#c7d84a',price:10000}]
 };
 function ownedSkinKeys() {
     try { return new Set(JSON.parse(localStorage.getItem('ownedSkins') || '[]')); } catch { return new Set(); }
@@ -360,6 +360,8 @@ function getSelectedHeroSkin(type) {
     const selected = skins.find(skin => skin.id === saved) || skins[0];
     return ownsSkin(type, selected) ? selected : skins[0];
 }
+// 所有皮肤可单独定义技能色；将来只填 effectColor（不填则自动沿用皮肤配色）即可生效。
+function skillEffectColor(owner) { return owner?.skin?.effectColor || owner?.skin?.color || owner?.color || '#62cfff'; }
 function selectHeroSkin(type, skinId, returnPanel = 'hero') {
     if (!ANIMALS[type]?.unlocked) return window.alert('请先解锁该英雄。');
     const skin = HERO_SKINS[type]?.find(item => item.id === skinId);
@@ -904,7 +906,8 @@ function build3DMesh(entity, kind) {
         const skillMat = new Three.MeshStandardMaterial({ color: entity.color, emissive: entity.color, emissiveIntensity: 1.25, roughness: .25 });
         if (entity.effect === 'shield' || entity.effect === 'healShield') {
             // 护盾贴着英雄形成半透明护甲球，而不是仅在地面画一圈。
-            const shieldColor = entity.effect === 'healShield' ? 0xffb84d : 0x62cfff;
+            const skinColor = entity.owner?.skin?.id !== 'default' ? skillEffectColor(entity.owner) : null;
+            const shieldColor = skinColor || (entity.effect === 'healShield' ? 0xffb84d : 0x62cfff);
             const shellMat = new Three.MeshStandardMaterial({ color:shieldColor, emissive:shieldColor, emissiveIntensity:1.15, transparent:true, opacity:.24, roughness:.18, side:Three.DoubleSide });
             const edgeMat = new Three.MeshBasicMaterial({ color:shieldColor, transparent:true, opacity:.75, wireframe:true });
             const shell = new Three.Mesh(new Three.SphereGeometry(.82, 18, 12), shellMat); shell.position.y=.62; group.add(shell);
@@ -1745,7 +1748,7 @@ class SkillEffect {
         this.owner = owner;
         this.x = owner.x;
         this.y = owner.y;
-        this.color = owner.color;
+        this.color = skillEffectColor(owner);
         this.name = active.name;
         this.effect = active.effect;
         this.radius = 26;

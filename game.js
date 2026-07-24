@@ -2416,7 +2416,12 @@ function openAccountPanel(kind) {
         title.textContent = '🦸 英雄图鉴';
         content.innerHTML = cards(heroesByPower().map(([key, h]) => {
             const skinChoices = h.unlocked && HERO_SKINS[key]?.length > 1
-                ? `<div class="skin-choices"><small>皮肤：</small>${HERO_SKINS[key].map(skin => `<button class="skin-dot${getSelectedHeroSkin(key)?.id === skin.id ? ' selected' : ''}${!ownsSkin(key, skin) ? ' locked' : ''}" type="button" title="${skin.name}${skin.price ? ` · ${skin.price} 金币` : ''}" style="background:${skin.color}" onclick="selectHeroSkin('${key}','${skin.id}')"></button>`).join('')}${HERO_SKINS[key].some(skin => skin.price && !ownsSkin(key, skin)) ? `<small>🪙${HERO_SKINS[key].find(skin => skin.price && !ownsSkin(key, skin)).price}</small>` : ''}</div>` : '';
+                ? `<div class="hero-skin-list"><small>皮肤：</small>${HERO_SKINS[key].map(skin => {
+                    const selected = getSelectedHeroSkin(key)?.id === skin.id;
+                    const owned = ownsSkin(key, skin);
+                    const label = selected ? `✓ ${skin.name}` : owned ? `使用 ${skin.name}` : `购买 ${skin.name} · ${skin.price}🪙`;
+                    return `<button class="hero-skin-button${selected ? ' selected' : ''}" type="button" style="--skin-color:${skin.color}" onclick="selectHeroSkin('${key}','${skin.id}')">${label}</button>`;
+                }).join('')}</div>` : '';
             return `<div class="animal-card" style="opacity:${h.unlocked ? 1 : .55}"><div class="animal-emoji">${heroIconMarkup(key, h)}</div><div>${heroRarityMarkup(h)}</div><div class="animal-name">${h.name}</div><div class="animal-stats">战力 ${calculateHeroPower(h)}<br>${h.unlocked ? '已解锁' : h.rewardOnly ? `❄️ ${polarUnlockCondition(key)}` : h.signOnly ? '签到专属' : `售价 ${h.price} 金币`}</div>${skinChoices}</div>`;
         }).join(''));
     } else if (kind === 'road') {
